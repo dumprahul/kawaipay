@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import cors from "@fastify/cors";
 import type { Pool } from "pg";
 import { MetricsRegistry, oracleVerdictRequestSchema } from "@kawaipay/shared";
 import type { FacilitatorClient } from "./facilitatorClient.js";
@@ -15,6 +16,7 @@ export interface AppDeps {
 
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false });
+  void app.register(cors, { origin: true }); // called from a different origin (the frontend) — see gateway/src/app.ts for the full reasoning
   const registry = deps.metricsRegistry ?? new MetricsRegistry();
   const metrics = registerOracleApiMetrics(registry);
 
