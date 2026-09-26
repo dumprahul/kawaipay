@@ -34,6 +34,7 @@ export async function seedCampaignAndLink(
   overrides: Partial<{
     campaignId: string;
     linkId: string;
+    seller: string;
     active: boolean;
     frozen: boolean;
     budgetRemaining: number;
@@ -45,8 +46,8 @@ export async function seedCampaignAndLink(
   const campaignId = overrides.campaignId ?? `campaign-for-${linkId}`;
   await pool.query(
     `INSERT INTO campaigns (campaign_id, seller, coin_type, rate_per_second, max_rate_per_second, per_settle_cap, per_link_epoch_cap, active, open_links)
-     VALUES ($1, '0xseller', '0x2::sui::SUI', $2, $3, 100000, 5000000, $4, true)`,
-    [campaignId, overrides.ratePerSecond ?? 200, overrides.maxRatePerSecond ?? 1000, overrides.active ?? true],
+     VALUES ($1, $5, '0x2::sui::SUI', $2, $3, 100000, 5000000, $4, true)`,
+    [campaignId, overrides.ratePerSecond ?? 200, overrides.maxRatePerSecond ?? 1000, overrides.active ?? true, overrides.seller ?? "0xseller"],
   );
   await pool.query(
     `INSERT INTO links (link_id, campaign_id, creator, frozen, budget_remaining) VALUES ($1, $2, '0xcreator', $3, $4)`,

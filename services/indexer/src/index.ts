@@ -1,9 +1,10 @@
-import { createPgPool, MetricsRegistry, startMetricsServer } from "@kawaipay/shared";
+import { createPgPool, loadEnv, MetricsRegistry, startMetricsServer } from "@kawaipay/shared";
 import { loadConfig } from "./config.js";
 import { SuiGraphQLEventSource } from "./eventSource.js";
 import { startIndexer } from "./indexer.js";
 import { registerIndexerMetrics } from "./metrics.js";
 
+loadEnv();
 const config = loadConfig();
 const pg = createPgPool(config.databaseUrl);
 const eventSource = new SuiGraphQLEventSource(config.packageId, config.graphqlUrl, config.network);
