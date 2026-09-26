@@ -1,0 +1,18 @@
+contracts/deployment/*.key.json
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Move build output
+contracts/build/
+
+# OS
+.DS_Store
+
+# Local Redis dumps from ad-hoc dev instances
+dump.rdb
+
+# log-writer's local dev log storage (LocalFsStore)
+services/log-writer/data/
