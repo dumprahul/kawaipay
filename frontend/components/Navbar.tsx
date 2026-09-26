@@ -87,7 +87,7 @@ export default function Navbar() {
             </button>
 
             <Link
-              href="/creator"
+              href="/"
               className="hidden lg:block text-[12px] font-semibold px-4 py-2 rounded-xl bg-[var(--espresso)] text-white hover:bg-[#333] transition-colors whitespace-nowrap"
             >
               Earn with Kawaii
