@@ -1,8 +1,10 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import cors from "@fastify/cors";
 import type { Pool } from "pg";
 import type { Redis } from "ioredis";
 import {
   campaignIdParamSchema,
+  campaignListQuerySchema,
   campaignMetadataRequestSchema,
   linkHistoryQuerySchema,
   linkIdParamSchema,
@@ -14,6 +16,8 @@ import { validateHeartbeat } from "./heartbeatValidation.js";
 import { scoreAndPersistHeartbeat } from "./scoring.js";
 import { getLinkHistory } from "./history.js";
 import { getCampaign, setCampaignMetadata } from "./campaignMetadata.js";
+import { listCampaigns } from "./campaignList.js";
+import { listCampaignLinks } from "./campaignLinks.js";
 import { registerGatewayMetrics } from "./metrics.js";
 
 export interface AppDeps {
@@ -28,6 +32,13 @@ export interface AppDeps {
 
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false });
+  // The frontend calls this from a different origin (its own Next.js host, not this
+  // service's) — every browser fetch here is cross-origin, so without this every one of
+  // them would be silently blocked by the browser regardless of what the server itself
+  // returns. Wide open (any origin) is deliberate: this API has no cookies/session state
+  // tied to an origin — auth is per-request (session secret in the body, Sui signatures),
+  // so there's nothing an allow-list would protect that isn't already protected server-side.
+  void app.register(cors, { origin: true });
   const registry = deps.metricsRegistry ?? new MetricsRegistry();
   const metrics = registerGatewayMetrics(registry);
 
@@ -99,6 +110,24 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       return reply.status(404).send({ error: { code: "LINK_NOT_FOUND", message: "no such link" } });
     }
     return reply.status(200).send(page);
+  });
+
+  app.get("/v1/campaigns", async (req, reply) => {
+    const query = campaignListQuerySchema.safeParse(req.query);
+    if (!query.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed query" } });
+    }
+    const page = await listCampaigns(deps.pg, query.data);
+    return reply.status(200).send(page);
+  });
+
+  app.get("/v1/campaigns/:campaignId/links", async (req, reply) => {
+    const params = campaignIdParamSchema.safeParse(req.params);
+    if (!params.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed campaignId" } });
+    }
+    const links = await listCampaignLinks(deps.pg, params.data.campaignId);
+    return reply.status(200).send({ links });
   });
 
   app.get("/v1/campaigns/:campaignId", async (req, reply) => {
