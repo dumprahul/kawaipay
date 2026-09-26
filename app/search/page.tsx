@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import PromoBar from "@/components/PromoBar";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FilterSidebar, { DEFAULT_FILTERS, type FilterState } from "@/components/FilterSidebar";
 import ProductCard from "@/components/ProductCard";
-import { PRODUCTS, searchProducts } from "@/lib/products";
+import { type Product } from "@/lib/products";
+import { getAllProducts, getOwnerProducts } from "@/lib/productStore";
 
 type SortKey = "relevance" | "price-asc" | "price-desc" | "rating";
 
@@ -17,8 +17,25 @@ function SearchResults() {
   const query = params.get("q") || "";
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortKey>("relevance");
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [ownerIds, setOwnerIds] = useState<Set<string>>(new Set());
 
-  const base = query ? searchProducts(query) : PRODUCTS;
+  useEffect(() => {
+    setAllProducts(getAllProducts());
+    setOwnerIds(new Set(getOwnerProducts().map((p) => p.id)));
+  }, []);
+
+  const base = useMemo(() => {
+    if (!query) return allProducts;
+    const q = query.toLowerCase();
+    return allProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        p.tags.some((t) => t.includes(q)) ||
+        p.description.toLowerCase().includes(q)
+    );
+  }, [query, allProducts]);
 
   const results = useMemo(() => {
     let list = [...base];
@@ -36,9 +53,17 @@ function SearchResults() {
     if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
     else if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
+    else {
+      // relevance: owner-added products first
+      list.sort((a, b) => {
+        const aOwner = ownerIds.has(a.id) ? 0 : 1;
+        const bOwner = ownerIds.has(b.id) ? 0 : 1;
+        return aOwner - bOwner;
+      });
+    }
 
     return list;
-  }, [base, filters, sort]);
+  }, [base, filters, sort, ownerIds]);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 flex gap-10">
@@ -87,7 +112,6 @@ function SearchResults() {
 export default function SearchPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      <PromoBar />
       <Navbar />
       <main className="flex-1">
         <Suspense>
