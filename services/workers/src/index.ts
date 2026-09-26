@@ -3,6 +3,7 @@ import { runBatcherService } from "../../batcher/src/main.js";
 import { runIndexerService } from "../../indexer/src/main.js";
 import { runLogWriterService } from "../../log-writer/src/main.js";
 import { runSentinelService } from "../../sentinel/src/main.js";
+import { runX402PayerService } from "../../x402-payer/src/main.js";
 
 /**
  * Combined entrypoint for the four background/worker services (ticket: Railway
@@ -28,6 +29,7 @@ const services: { name: string; run: () => Promise<void> }[] = [
   { name: "indexer", run: runIndexerService },
   { name: "log-writer", run: runLogWriterService },
   { name: "sentinel", run: runSentinelService },
+  { name: "x402-payer", run: runX402PayerService },
 ];
 
 for (const service of services) {
