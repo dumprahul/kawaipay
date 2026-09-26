@@ -8,6 +8,7 @@ export * from "./canonicalJson.js";
 export * from "./merkle.js";
 export * from "./mac.js";
 export * from "./pg.js";
+export * from "./loadEnv.js";
 export * from "./metrics.js";
 export * from "./metricsServer.js";
 export * from "./alerts.js";
