@@ -75,7 +75,20 @@ export default function CallbackPage() {
         const address = deriveAddress(jwt, salt);
 
         setStatus("generating_proof");
-        const proof = await fetchZkProof(jwt, ephemeral, salt);
+        let proof;
+        let lastErr: unknown;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            proof = await fetchZkProof(jwt, ephemeral, salt);
+            break;
+          } catch (e) {
+            lastErr = e;
+            const is429 = e instanceof Error && e.message.includes("429");
+            if (!is429 || attempt === 2) throw e;
+            await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+          }
+        }
+        if (!proof) throw lastErr;
 
         saveZkLoginSession({
           proof,
@@ -89,7 +102,15 @@ export default function CallbackPage() {
         setStatus("done");
         router.push("/dashboard");
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        const msg = e instanceof Error ? e.message : String(e);
+        const friendly = msg.includes("429") || msg.includes("TooManyRequests")
+          ? "The proof server is busy. Please try again in a few seconds."
+          : msg.includes("Ephemeral")
+          ? "Session expired. Please log in again."
+          : msg.includes("id_token")
+          ? "Google sign-in was cancelled or failed. Please try again."
+          : "Something went wrong during sign-in. Please try again.";
+        setError(friendly);
         setStatus("error");
       }
     }
