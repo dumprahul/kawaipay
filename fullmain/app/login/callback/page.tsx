@@ -58,7 +58,12 @@ export default function CallbackPage() {
         await completeZkLogin();
 
         setStatus("done");
-        router.push("/dashboard");
+        // If sign-in was triggered from inside the "Generate affiliate link" modal (not
+        // the top-level Navbar sign-in), send them back to that exact product page
+        // instead of the dashboard, so they land right back where they were.
+        const returnTo = sessionStorage.getItem("post_login_redirect");
+        sessionStorage.removeItem("post_login_redirect");
+        router.push(returnTo || "/dashboard");
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         const friendly = msg.includes("429") || msg.includes("TooManyRequests")

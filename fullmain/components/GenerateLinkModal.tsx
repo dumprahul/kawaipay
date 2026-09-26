@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import type { Product } from "@/lib/products";
-import { loadZkLoginSession } from "@/lib/zklogin";
+import { loadZkLoginSession, startZkLogin } from "@/lib/zklogin";
 import { createLinkOnChain } from "@/lib/chainTransactions";
 
-type Status = "idle" | "creating" | "done" | "error";
+type Status = "idle" | "creating" | "done" | "error" | "not_signed_in" | "connecting";
 
 interface GenerateLinkModalProps {
   product: Product;
@@ -30,8 +30,7 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
     try {
       const session = await loadZkLoginSession();
       if (!session) {
-        setError("Your creator session isn't available here — sign in again (it may have expired, or this tab never had it) to generate a real, on-chain shareable link.");
-        setStatus("error");
+        setStatus("not_signed_in");
         return;
       }
       // Real on-chain link::create, signed by this creator's zkLogin session —
@@ -43,6 +42,22 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
       setStatus("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate link");
+      setStatus("error");
+    }
+  }
+
+  async function handleConnectWallet() {
+    setStatus("connecting");
+    try {
+      // Same role zkLogin flow the Navbar's sign-in modal uses — just triggered from
+      // here instead, and remembering to send them back to this exact page afterwards
+      // rather than the dashboard, so they land right back at this product.
+      sessionStorage.setItem("kawaii_role", "creator");
+      sessionStorage.setItem("post_login_redirect", window.location.pathname + window.location.search);
+      const url = await startZkLogin("google");
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start sign-in");
       setStatus("error");
     }
   }
@@ -103,7 +118,52 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
         </div>
 
         <div className="px-8 py-6 space-y-6">
-          {status !== "done" && (
+          {(status === "not_signed_in" || status === "connecting") && (
+            <>
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--espresso)] mb-1">Connect your wallet to continue</h3>
+                <p className="text-xs text-[var(--muted-brown)] leading-relaxed">
+                  Generating a real, on-chain affiliate link needs a signed-in creator
+                  wallet — sign in with zkLogin to get one, no seed phrase or extension
+                  required. You&apos;ll come right back here afterwards.
+                </p>
+              </div>
+
+              {error && (
+                <p className="text-red-700 text-xs bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+                  {error}
+                </p>
+              )}
+
+              <button
+                onClick={handleConnectWallet}
+                disabled={status === "connecting"}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl bg-[var(--espresso)] text-[var(--cream)] text-sm font-medium hover:bg-[var(--brown)] transition-colors disabled:opacity-60"
+              >
+                {status === "connecting" ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Redirecting…
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                      <path fill="#fff" opacity="0.9" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#fff" opacity="0.7" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#fff" opacity="0.6" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                      <path fill="#fff" opacity="0.8" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Connect wallet with Google
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {status !== "done" && status !== "not_signed_in" && status !== "connecting" && (
             <>
               <div>
                 <h3 className="text-sm font-semibold text-[var(--espresso)] mb-1">Generate your affiliate link</h3>
