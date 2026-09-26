@@ -1,0 +1,21 @@
+{
+  "network": "testnet",
+  "publishedAt": "2026-09-26T00:00:00Z",
+  "publishDigest": "6ESsMA3gSUHgfs3eYvFn1mujg8nHGC2Rz98XyvfULP3M",
+  "packageId": "0x783ffc3f10c07ed01ba7799b92f2bbd663c1b2bbe3ac574dc03598e2f6a93e03",
+  "modules": ["campaign", "link", "oracle_registry", "payout"],
+  "objects": {
+    "oracleRegistryId": "0xf3d190c8ad619ded4d8bc47b8299e4577c17a9ce5b761475b56cb956d8d52f9b",
+    "adminCapId": "0xb01e1070ced904c4de1be49a7500603b967337b2c432a463f85facf00b238ac8",
+    "freezeCapId": "0x327180c8bb009d24e56c5fbac0aaa9b31ccadcdaaf792cbf38491b0231b90f0e",
+    "upgradeCapId": "0xcff1d2ffd59f29579831c79f9ef21ea70edafe6edec80258a20614e65f94d3c4"
+  },
+  "oracleSigner": {
+    "publicKeyHex": "019ea63b80fef3076e32ad33f639cc2b7c67dd966902d00299540a2afc0f65ba",
+    "setSignerDigest": "see /tmp/set_signer_output.json at deploy time",
+    "registryVersionAfterSet": 1,
+    "privateKeyLocation": "contracts/deployment/testnet-oracle-signer.key.json (gitignored, dev/testnet only, NOT for production)"
+  },
+  "adminOwner": "0xefc32986ba431b8c767422caf0f0d395bace07c1f0213e879c7b3e96e08a7bec",
+  "notes": "No Campaign or Link objects created yet — those are created per-campaign by whoever calls campaign::create. This file only records the one-time package publish and registry signer setup."
+}

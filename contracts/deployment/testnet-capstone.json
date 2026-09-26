@@ -1,0 +1,19 @@
+{
+  "network": "testnet",
+  "packageId": "0x783ffc3f10c07ed01ba7799b92f2bbd663c1b2bbe3ac574dc03598e2f6a93e03",
+  "registryId": "0xf3d190c8ad619ded4d8bc47b8299e4577c17a9ce5b761475b56cb956d8d52f9b",
+  "usdcType": "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+  "campaignId": "0x5d5b45920a1abf0afacfa096e744e16e2686309463f5b9ea94e3ddcc6eeeec1e",
+  "campaignCapId": "0x644844a2d4dd910bd28d6caec3ed2125c5995ec8502b21525cb580071ef1b32f",
+  "linkId": "0xc1cd8ba232d6908c082f6334fd6f1c20ec81d58ce6159cc65aa592d8c89a6341",
+  "linkCreator": "0xefc32986ba431b8c767422caf0f0d395bace07c1f0213e879c7b3e96e08a7bec",
+  "relayerAddress": "0xd56e65d67e14579ca94b1eed1258b96d8f8642b5e4f1f7b4318880d08ccb96b6",
+  "campaignParams": {
+    "ratePerSecond": 100,
+    "maxRatePerSecond": 1000,
+    "perSettleCap": 500000,
+    "perLinkEpochCap": 500000,
+    "fundedAmount": 500000
+  },
+  "notes": "Live capstone test campaign/link. Real testnet USDC, real relayer key (contracts/deployment/testnet-relayer.key.json, gitignored)."
+}
