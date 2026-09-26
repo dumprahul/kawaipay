@@ -30,7 +30,7 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
     try {
       const session = await loadZkLoginSession();
       if (!session) {
-        setError("Sign in as a creator first to generate a real, on-chain shareable link.");
+        setError("Your creator session isn't available here — sign in again (it may have expired, or this tab never had it) to generate a real, on-chain shareable link.");
         setStatus("error");
         return;
       }

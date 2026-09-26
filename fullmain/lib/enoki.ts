@@ -1,4 +1,4 @@
-import { EnokiFlow } from "@mysten/enoki";
+import { EnokiFlow, createLocalStorage } from "@mysten/enoki";
 
 // Enoki replaces our previous DIY zkLogin pipeline (own prover + salt calls against
 // Mysten's shared public dev prover), which was rate-limited and, once past the rate
@@ -21,7 +21,11 @@ export function getEnokiFlow(): EnokiFlow {
     throw new Error("getEnokiFlow() must only be called in the browser");
   }
   if (!flow) {
-    flow = new EnokiFlow({ apiKey: ENOKI_API_KEY });
+    // Enoki defaults to sessionStorage, which is scoped to a single tab — opening the
+    // app in a new tab (or restarting the browser) looks like being logged out even
+    // though the same login is still valid. localStorage matches what "logged in"
+    // actually means to a user: it survives new tabs and full browser restarts.
+    flow = new EnokiFlow({ apiKey: ENOKI_API_KEY, store: createLocalStorage() });
   }
   return flow;
 }
