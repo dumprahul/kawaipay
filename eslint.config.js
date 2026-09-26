@@ -3,7 +3,9 @@ import tsParser from "@typescript-eslint/parser";
 
 export default [
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "**/build/**", "contracts/**"],
+    // fullmain/ is the separately-pulled frontend (its own repo, own tooling, own
+    // eslint.config.mjs) — not part of this monorepo's workspace, so it isn't linted here.
+    ignores: ["**/dist/**", "**/node_modules/**", "**/build/**", "contracts/**", "fullmain/**"],
   },
   {
     files: ["**/*.ts"],
