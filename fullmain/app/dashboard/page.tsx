@@ -22,6 +22,23 @@ export default function DashboardPage() {
   const [buyer, setBuyer] = useState<BuyerSession | null>(null);
   const [ready, setReady] = useState(false);
 
+  async function fetchBalance(addr: string) {
+    try {
+      const res = await fetch("https://graphql.testnet.sui.io/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `{ address(address: "${addr}") { balance { totalBalance } } }`,
+        }),
+      });
+      const { data } = await res.json();
+      const raw = data?.address?.balance?.totalBalance ?? "0";
+      setBalance((Number(raw) / 1_000_000_000).toFixed(4));
+    } catch {
+      setBalance("0.0000");
+    }
+  }
+
   useEffect(() => {
     const r = sessionStorage.getItem("kawaii_role");
     setRole(r);
@@ -41,23 +58,6 @@ export default function DashboardPage() {
     }
     init();
   }, [router]);
-
-  async function fetchBalance(addr: string) {
-    try {
-      const res = await fetch("https://graphql.testnet.sui.io/graphql", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `{ address(address: "${addr}") { balance { totalBalance } } }`,
-        }),
-      });
-      const { data } = await res.json();
-      const raw = data?.address?.balance?.totalBalance ?? "0";
-      setBalance((Number(raw) / 1_000_000_000).toFixed(4));
-    } catch {
-      setBalance("0.0000");
-    }
-  }
 
   function handleCopy() {
     if (!address) return;
