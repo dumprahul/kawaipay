@@ -41,7 +41,6 @@ export default function Navbar() {
             <Link href="/shop" className="hover:text-[var(--espresso)] transition-colors">Shop</Link>
             <Link href="/search" className="hover:text-[var(--espresso)] transition-colors">Categories</Link>
             <Link href="/search?q=trending" className="hover:text-[var(--espresso)] transition-colors">Trending</Link>
-            <Link href="/creator" className="hover:text-[var(--espresso)] transition-colors">For Creators</Link>
           </div>
 
           {/* Right actions */}
