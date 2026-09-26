@@ -86,6 +86,25 @@ export async function getCampaign(campaignId: string): Promise<CampaignRecord | 
   }
 }
 
+/**
+ * Polls GET /v1/campaigns/:id until it 200s. A freshly on-chain-confirmed campaign
+ * doesn't exist in Postgres yet — it's only inserted once the indexer's own poll loop
+ * (every ~1s) observes the CampaignCreated event — so calling setCampaignMetadata right
+ * after createCampaignOnChain can 404 with "no such campaign" on a fast machine/network.
+ */
+export async function waitForCampaign(campaignId: string, opts: { timeoutMs?: number; intervalMs?: number } = {}): Promise<void> {
+  const timeoutMs = opts.timeoutMs ?? 15_000;
+  const intervalMs = opts.intervalMs ?? 750;
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (await getCampaign(campaignId)) return;
+    if (Date.now() >= deadline) {
+      throw new Error("Campaign was created on-chain but the indexer hasn't picked it up yet. Please try listing your product again in a few seconds.");
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+}
+
 export interface CampaignLinkSummary {
   linkId: string;
   creator: string;

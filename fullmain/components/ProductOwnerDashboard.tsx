@@ -8,7 +8,7 @@ import { getProductsBySeller } from "@/lib/productStore";
 import { CATEGORIES, type Product } from "@/lib/products";
 import { loadZkLoginSession, buildZkLoginPersonalMessageSignature } from "@/lib/zklogin";
 import { createCampaignOnChain, InsufficientFundsError } from "@/lib/chainTransactions";
-import { setCampaignMetadata, listCampaignLinks, type CampaignLinkSummary } from "@/lib/api";
+import { setCampaignMetadata, waitForCampaign, listCampaignLinks, type CampaignLinkSummary } from "@/lib/api";
 import { campaignMetadataSigningMessage } from "@/lib/campaignMetadataMessage";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -87,6 +87,9 @@ function AddProductModal({
 
       setStep("Creating campaign on-chain (signing with your wallet)…");
       const { campaignId } = await createCampaignOnChain(session, { ratePerSecondBaseUnits, escrowBaseUnits });
+
+      setStep("Waiting for the chain indexer to pick up your campaign…");
+      await waitForCampaign(campaignId);
 
       setStep("Saving your product listing…");
       const fields = { title: title.trim(), category, description: description.trim(), imageUrl: imageUrl.trim(), priceUsd: Number(price) };
