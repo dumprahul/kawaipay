@@ -14,6 +14,8 @@ export interface AppDeps {
   metricsRegistry?: MetricsRegistry;
 }
 
+const log = (msg: string, meta?: Record<string, unknown>) => console.log(JSON.stringify({ msg, service: "oracle-api", ...meta }));
+
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false });
   void app.register(cors, { origin: true }); // called from a different origin (the frontend) — see gateway/src/app.ts for the full reasoning
@@ -44,15 +46,20 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
     switch (outcome.kind) {
       case "payment_required":
+        log("402 — no payment attached", { accepts: outcome.accepts[0] });
         return reply.status(402).send({ x402Version: 2, error: "X-PAYMENT header is required", accepts: outcome.accepts });
       case "malformed_payment":
+        log("400 — malformed X-PAYMENT header", { message: outcome.message });
         return reply.status(400).send({ error: { code: "MALFORMED_PAYMENT", message: outcome.message } });
       case "invalid_payment":
+        log("402 — payment rejected by facilitator verify", { reason: outcome.reason });
         return reply.status(402).send({ x402Version: 2, error: outcome.reason });
       case "settle_failed":
+        log("402 — facilitator settle failed", { reason: outcome.reason });
         return reply.status(402).send({ x402Version: 2, error: outcome.reason });
       case "ok":
         if (!outcome.cached) metrics.paymentsSettled.inc();
+        log("200 — payment settled, verdict served", { txDigest: outcome.txDigest, cached: outcome.cached });
         reply.header("X-PAYMENT-RESPONSE", Buffer.from(JSON.stringify({ success: true, transaction: outcome.txDigest })).toString("base64"));
         return reply.status(200).send(outcome.response);
     }

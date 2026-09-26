@@ -30,6 +30,8 @@ export interface AppDeps {
   metricsRegistry?: MetricsRegistry;
 }
 
+const log = (msg: string, meta?: Record<string, unknown>) => console.log(JSON.stringify({ msg, service: "gateway", ...meta }));
+
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false });
   // The frontend calls this from a different origin (its own Next.js host, not this
@@ -65,6 +67,11 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }
     const result = await startSession(sessionStartDeps, parsed.data.linkId, req.ip, Date.now());
     metrics.sessionsStarted.inc({ tracking: String(result.tracking) });
+    log("session start", {
+      linkId: parsed.data.linkId,
+      tracking: result.tracking,
+      reason: result.tracking ? undefined : result.reason,
+    });
     return reply.status(200).send(result);
   });
 
@@ -74,10 +81,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
     if (validated.kind === "error") {
       metrics.heartbeats.inc({ outcome: "error" });
+      log("heartbeat rejected", { code: validated.code });
       return reply.status(validated.status).send({ error: { code: validated.code, message: validated.code } });
     }
     if (validated.kind === "link_inactive") {
       metrics.heartbeats.inc({ outcome: "link_inactive" });
+      log("heartbeat rejected", { code: "LINK_INACTIVE" });
       return reply.status(200).send({ ok: false, reason: "LINK_INACTIVE" });
     }
 

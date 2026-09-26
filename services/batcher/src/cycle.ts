@@ -34,7 +34,17 @@ export type CycleOutcome =
   | { kind: "skipped_guard"; guard: GuardFailure; alerts: CycleAlert[] }
   | { kind: "idle"; alerts: CycleAlert[] }
   | { kind: "all_failed_dry_run"; batchId: number; failedCount: number; alerts: CycleAlert[] }
-  | { kind: "submitted"; batchId: number; digest: string; itemCount: number; failedCount: number; success: boolean; alerts: CycleAlert[] };
+  | {
+      kind: "submitted";
+      batchId: number;
+      digest: string;
+      itemCount: number;
+      failedCount: number;
+      success: boolean;
+      alerts: CycleAlert[];
+      /** Every creator payout in this batch, for Railway log visibility — who got paid, how much, for what link. */
+      items: { linkId: string; campaignId: string; amountUsdcBaseUnits: number; secondsVerified: number }[];
+    };
 
 /**
  * One full batcher cycle (spec section 8). Gas budgeting here is a fixed per-item
@@ -112,5 +122,11 @@ export async function runCycle(deps: CycleDeps, config: CycleConfig): Promise<Cy
     failedCount: bisected.failed.length,
     success: outcome.success,
     alerts: reserved.alerts,
+    items: (bisected.succeeded as ReservedItem[]).map((item) => ({
+      linkId: item.linkId,
+      campaignId: item.campaignId,
+      amountUsdcBaseUnits: item.amount,
+      secondsVerified: item.secondsVerified,
+    })),
   };
 }

@@ -15,6 +15,11 @@ import { hourBucket, linkHourlyCapKey, sourceHourlyCapKey } from "./redisKeys.js
 
 const CAP_KEY_TTL_S = 3700; // a little over an hour, so a slow-starting hour still has its counter
 
+// Server-side only — never derived from or sent in the HTTP response (see the "MUST NOT
+// forward anything from the TickResult to the client" note below). Railway log visibility
+// for what the oracle actually verified on every tick.
+const log = (msg: string, meta?: Record<string, unknown>) => console.log(JSON.stringify({ msg, service: "gateway", ...meta }));
+
 export interface ScoreAndPersistParams {
   sessionId: string;
   session: SessionRecord;
@@ -71,6 +76,16 @@ export async function scoreAndPersistHeartbeat(pg: Pool, redis: Redis, params: S
   };
 
   const result = scoreTick(input, capUsage, DEFAULT_CAP_LIMITS);
+
+  log("heartbeat scored", {
+    linkId: link.linkId,
+    sessionId,
+    seq,
+    verdict: result.verdict,
+    score: result.score,
+    amountUsdcBaseUnits: result.amount,
+    reasons: result.reasons,
+  });
 
   const client = await pg.connect();
   try {
