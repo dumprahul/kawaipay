@@ -17,6 +17,15 @@ export interface ZkLoginSession {
   provider: AuthProvider;
 }
 
+// Always the origin the app is actually running on — never a fixed env var. A hardcoded
+// NEXT_PUBLIC_REDIRECT_URI bakes in one origin at build time, so deploying the exact same
+// build to a different domain (or running it locally) sends the OAuth redirect to the
+// wrong place. Google/Twitch just need every origin you actually use registered as an
+// authorized redirect URI — they don't care how the URL was constructed.
+function getRedirectUri(): string {
+  return `${window.location.origin}/login/callback`;
+}
+
 // Step 1 — kick off the OAuth redirect. Enoki generates and stores the ephemeral
 // keypair/nonce/maxEpoch internally; we just need the resulting authorization URL.
 export async function startZkLogin(provider: ZkLoginProvider): Promise<string> {
@@ -27,7 +36,7 @@ export async function startZkLogin(provider: ZkLoginProvider): Promise<string> {
       provider === "google"
         ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!
         : process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID!,
-    redirectUrl: process.env.NEXT_PUBLIC_REDIRECT_URI!,
+    redirectUrl: getRedirectUri(),
     network: ENOKI_NETWORK,
   });
 }
@@ -87,7 +96,7 @@ export async function buildZkLoginPersonalMessageSignature(
 
 // Plain Google OAuth for buyers — no nonce/zkLogin, just email + name
 export function buildBuyerOAuthUrl(): string {
-  const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI!;
+  const redirectUri = getRedirectUri();
   const params = new URLSearchParams({
     client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
     response_type: "id_token",
