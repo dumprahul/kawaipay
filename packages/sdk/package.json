@@ -1,0 +1,20 @@
+{
+  "name": "@kawaipay/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@kawaipay/shared": "workspace:*",
+    "@types/node": "^20.14.0",
+    "esbuild": "^0.24.0",
+    "jsdom": "^25.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
