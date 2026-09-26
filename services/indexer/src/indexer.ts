@@ -61,7 +61,21 @@ export async function processPage(
 
 const MODULES = ["oracle_registry", "campaign", "link", "payout"] as const;
 
-/** Polls one module forever: no sleep while pages are full, INDEXER_POLL_MS between empty polls. */
+/**
+ * Polls one module forever: no sleep while pages are full, INDEXER_POLL_MS between empty
+ * polls. Each module is polled fully independently (a real fullnode has no single
+ * "whole package" event stream to page in causal order), so one module's loop can race
+ * ahead of another's — e.g. `link` reaching a LinkCreated event before `campaign`'s own
+ * loop has gotten around to applying that link's CampaignCreated event yet. That surfaces
+ * as a foreign-key violation here, not a bug in the event data — it's a transient
+ * ordering gap that resolves itself once the other module's loop catches up. `processPage`
+ * already rolls its whole transaction back on any error (so nothing partial persists and
+ * the cursor doesn't advance), but without a catch here that error would otherwise escape
+ * and take down the entire process via `Promise.all` — verified live: syncing a fresh
+ * database from genesis hit exactly this race on the very first run. Every other
+ * service's main loop already retries-after-logging the same way; this brings the
+ * indexer's polling loop to the same standard.
+ */
 export async function runModuleLoop(
   pg: Pool,
   eventSource: EventSource,
@@ -71,11 +85,16 @@ export async function runModuleLoop(
   metrics?: IndexerMetrics,
 ): Promise<void> {
   while (shouldContinue()) {
-    const result = await processPage(pg, eventSource, module, log);
-    await touchHeartbeat(pg, cursorName(module));
-    metrics?.pollsTotal.inc({ module });
-    if (result.processed > 0) metrics?.eventsProcessed.inc({ module }, result.processed);
-    if (!result.hasNextPage) {
+    try {
+      const result = await processPage(pg, eventSource, module, log);
+      await touchHeartbeat(pg, cursorName(module));
+      metrics?.pollsTotal.inc({ module });
+      if (result.processed > 0) metrics?.eventsProcessed.inc({ module }, result.processed);
+      if (!result.hasNextPage) {
+        await new Promise((resolve) => setTimeout(resolve, INDEXER_POLL_MS));
+      }
+    } catch (err) {
+      log("module poll failed, will retry", { module, error: err instanceof Error ? err.message : String(err) });
       await new Promise((resolve) => setTimeout(resolve, INDEXER_POLL_MS));
     }
   }

@@ -1,8 +1,9 @@
 import Redis from "ioredis";
-import { createPgPool } from "@kawaipay/shared";
+import { createPgPool, loadEnv } from "@kawaipay/shared";
 import { loadConfig } from "./config.js";
 import { buildApp } from "./app.js";
 
+loadEnv();
 const config = loadConfig();
 const pg = createPgPool(config.databaseUrl);
 const redis = new Redis(config.redisUrl);

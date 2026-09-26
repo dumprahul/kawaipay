@@ -2,8 +2,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import type { Pool } from "pg";
 import type { Redis } from "ioredis";
+import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { computeHeartbeatMac, heartbeatMacMessage } from "@kawaipay/shared";
 import { buildApp } from "../src/app.js";
+import { campaignMetadataSigningMessage } from "../src/campaignMetadata.js";
 import { createTestDatabase, createTestRedis, seedCampaignAndLink } from "./testHarness.js";
 
 let pg: Pool;
@@ -87,6 +89,59 @@ describe("GET /v1/links/:linkId/history", () => {
       },
     ]);
     expect(body.nextBeforeSeq).toBeNull();
+  });
+});
+
+describe("campaign metadata endpoints", () => {
+  it("returns 404 for an unknown (but validly-formatted) campaign", async () => {
+    const res = await app.inject({ method: "GET", url: `/v1/campaigns/0x${"ff".repeat(32)}` });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("sets and reads back a campaign's product metadata via a signed PUT", async () => {
+    const keypair = Ed25519Keypair.generate();
+    const seller = keypair.getPublicKey().toSuiAddress();
+    const { campaignId } = await seedCampaignAndLink(pg, {
+      campaignId: "0x" + "50".repeat(32),
+      linkId: "0x" + "51".repeat(32),
+      seller,
+    });
+
+    const fields = { title: "Widget Pro", category: "tools", description: "The best widget.", imageUrl: "https://example.com/widget.png" };
+    const message = campaignMetadataSigningMessage(campaignId, fields);
+    const { signature } = await keypair.signPersonalMessage(message);
+
+    const putRes = await app.inject({
+      method: "PUT",
+      url: `/v1/campaigns/${campaignId}/metadata`,
+      payload: { ...fields, signature },
+    });
+    expect(putRes.statusCode).toBe(200);
+    expect(putRes.json()).toMatchObject(fields);
+
+    const getRes = await app.inject({ method: "GET", url: `/v1/campaigns/${campaignId}` });
+    expect(getRes.statusCode).toBe(200);
+    expect(getRes.json()).toMatchObject(fields);
+  });
+
+  it("returns 401 for a signature that doesn't match the campaign's seller", async () => {
+    const { campaignId } = await seedCampaignAndLink(pg, {
+      campaignId: "0x" + "52".repeat(32),
+      linkId: "0x" + "53".repeat(32),
+      seller: Ed25519Keypair.generate().getPublicKey().toSuiAddress(),
+    });
+    const impostor = Ed25519Keypair.generate();
+    const fields = { title: "Widget Pro", category: "tools", description: "The best widget.", imageUrl: "https://example.com/widget.png" };
+    const { signature } = await impostor.signPersonalMessage(campaignMetadataSigningMessage(campaignId, fields));
+
+    const res = await app.inject({ method: "PUT", url: `/v1/campaigns/${campaignId}/metadata`, payload: { ...fields, signature } });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 400 for a malformed metadata body", async () => {
+    const { campaignId } = await seedCampaignAndLink(pg, { campaignId: "0x" + "54".repeat(32), linkId: "0x" + "55".repeat(32) });
+    const res = await app.inject({ method: "PUT", url: `/v1/campaigns/${campaignId}/metadata`, payload: { title: "" } });
+    expect(res.statusCode).toBe(400);
   });
 });
 
