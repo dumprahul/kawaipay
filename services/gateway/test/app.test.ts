@@ -44,6 +44,13 @@ afterAll(async () => {
   await pg.end();
 });
 
+describe("CORS", () => {
+  it("allows a cross-origin browser request (the frontend is on a different origin)", async () => {
+    const res = await app.inject({ method: "GET", url: "/health", headers: { origin: "https://example-frontend.vercel.app" } });
+    expect(res.headers["access-control-allow-origin"]).toBe("https://example-frontend.vercel.app");
+  });
+});
+
 describe("GET /v1/links/:linkId/history", () => {
   it("returns 404 for a link that doesn't exist", async () => {
     const res = await app.inject({ method: "GET", url: `/v1/links/0x${"ff".repeat(32)}/history` });
@@ -92,6 +99,25 @@ describe("GET /v1/links/:linkId/history", () => {
   });
 });
 
+describe("GET /v1/campaigns", () => {
+  it("returns only campaigns with metadata set, newest first", async () => {
+    const keypair = Ed25519Keypair.generate();
+    const seller = keypair.getPublicKey().toSuiAddress();
+    const { campaignId } = await seedCampaignAndLink(pg, { campaignId: "0x" + "56".repeat(32), linkId: "0x" + "57".repeat(32), seller });
+    const fields = { title: "Listed Product", category: "tools", description: "d", imageUrl: "https://example.com/x.png", priceUsd: 12 };
+    const { signature } = await keypair.signPersonalMessage(campaignMetadataSigningMessage(campaignId, fields));
+    await app.inject({ method: "PUT", url: `/v1/campaigns/${campaignId}/metadata`, payload: { ...fields, signature } });
+
+    await seedCampaignAndLink(pg, { campaignId: "0x" + "58".repeat(32), linkId: "0x" + "59".repeat(32) }); // no metadata
+
+    const res = await app.inject({ method: "GET", url: "/v1/campaigns" });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.campaigns.some((c: { campaignId: string }) => c.campaignId === campaignId)).toBe(true);
+    expect(body.campaigns.find((c: { title: string }) => c.title === "Listed Product")).toMatchObject({ category: "tools", priceUsd: 12 });
+  });
+});
+
 describe("campaign metadata endpoints", () => {
   it("returns 404 for an unknown (but validly-formatted) campaign", async () => {
     const res = await app.inject({ method: "GET", url: `/v1/campaigns/0x${"ff".repeat(32)}` });
@@ -107,7 +133,7 @@ describe("campaign metadata endpoints", () => {
       seller,
     });
 
-    const fields = { title: "Widget Pro", category: "tools", description: "The best widget.", imageUrl: "https://example.com/widget.png" };
+    const fields = { title: "Widget Pro", category: "tools", description: "The best widget.", imageUrl: "https://example.com/widget.png", priceUsd: 99 };
     const message = campaignMetadataSigningMessage(campaignId, fields);
     const { signature } = await keypair.signPersonalMessage(message);
 
@@ -131,7 +157,7 @@ describe("campaign metadata endpoints", () => {
       seller: Ed25519Keypair.generate().getPublicKey().toSuiAddress(),
     });
     const impostor = Ed25519Keypair.generate();
-    const fields = { title: "Widget Pro", category: "tools", description: "The best widget.", imageUrl: "https://example.com/widget.png" };
+    const fields = { title: "Widget Pro", category: "tools", description: "The best widget.", imageUrl: "https://example.com/widget.png", priceUsd: 99 };
     const { signature } = await impostor.signPersonalMessage(campaignMetadataSigningMessage(campaignId, fields));
 
     const res = await app.inject({ method: "PUT", url: `/v1/campaigns/${campaignId}/metadata`, payload: { ...fields, signature } });

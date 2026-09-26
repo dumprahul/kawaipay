@@ -8,7 +8,7 @@ let pg: Pool;
 const sellerKeypair = Ed25519Keypair.generate();
 const sellerAddress = sellerKeypair.getPublicKey().toSuiAddress();
 
-const FIELDS = { title: "My Product", category: "media", description: "A great product.", imageUrl: "https://example.com/image.png" };
+const FIELDS = { title: "My Product", category: "media", description: "A great product.", imageUrl: "https://example.com/image.png", priceUsd: 42 };
 
 async function sign(campaignId: string, fields = FIELDS) {
   const message = campaignMetadataSigningMessage(campaignId, fields);

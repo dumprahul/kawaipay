@@ -78,11 +78,22 @@ export const campaignMetadataRequestSchema = z
     category: z.string().trim().min(1).max(60),
     description: z.string().trim().max(2000),
     imageUrl: z.string().url().max(2000),
-    /** Base64 Sui personal-message signature over canonicalJson({campaignId, ...the four fields above}), proving the caller controls campaigns.seller for this campaignId. */
+    /** Informational display price (e.g. "$189") — not read by scoring/payout/settlement. */
+    priceUsd: z.number().nonnegative().max(1_000_000),
+    /** Base64 Sui personal-message signature over canonicalJson({campaignId, ...the five fields above}), proving the caller controls campaigns.seller for this campaignId. */
     signature: z.string().min(1),
   })
   .strict();
 export type CampaignMetadataRequest = z.infer<typeof campaignMetadataRequestSchema>;
+
+/** GET /v1/campaigns — list/search query string. */
+export const campaignListQuerySchema = z.object({
+  seller: z.string().optional(),
+  category: z.string().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  beforeCreatedAt: z.string().datetime().optional(),
+});
+export type CampaignListQuery = z.infer<typeof campaignListQuerySchema>;
 
 /** Section 12: POST /v1/oracle/verdict request body. Extra fields are a 400 (strict). */
 export const oracleVerdictRequestSchema = z

@@ -22,7 +22,8 @@ CREATE TABLE campaigns (
   title text,
   category text,
   description text,
-  image_url text
+  image_url text,
+  price_usd numeric
 );
 
 CREATE TABLE links (
