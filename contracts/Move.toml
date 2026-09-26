@@ -1,0 +1,8 @@
+[package]
+name = "kawaipay"
+edition = "2024"
+
+[dependencies]
+
+# Read more about the package management system options:
+# https://docs.sui.io/guides/developer/packages/move-package-management
