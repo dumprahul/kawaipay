@@ -1,11 +1,19 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Pool } from "pg";
 import type { Redis } from "ioredis";
-import { linkHistoryQuerySchema, linkIdParamSchema, MetricsRegistry, sessionStartRequestSchema } from "@kawaipay/shared";
+import {
+  campaignIdParamSchema,
+  campaignMetadataRequestSchema,
+  linkHistoryQuerySchema,
+  linkIdParamSchema,
+  MetricsRegistry,
+  sessionStartRequestSchema,
+} from "@kawaipay/shared";
 import { startSession, type SessionStartDeps } from "./sessionStart.js";
 import { validateHeartbeat } from "./heartbeatValidation.js";
 import { scoreAndPersistHeartbeat } from "./scoring.js";
 import { getLinkHistory } from "./history.js";
+import { getCampaign, setCampaignMetadata } from "./campaignMetadata.js";
 import { registerGatewayMetrics } from "./metrics.js";
 
 export interface AppDeps {
@@ -91,6 +99,39 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       return reply.status(404).send({ error: { code: "LINK_NOT_FOUND", message: "no such link" } });
     }
     return reply.status(200).send(page);
+  });
+
+  app.get("/v1/campaigns/:campaignId", async (req, reply) => {
+    const params = campaignIdParamSchema.safeParse(req.params);
+    if (!params.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed campaignId" } });
+    }
+    const campaign = await getCampaign(deps.pg, params.data.campaignId);
+    if (!campaign) {
+      return reply.status(404).send({ error: { code: "CAMPAIGN_NOT_FOUND", message: "no such campaign" } });
+    }
+    return reply.status(200).send(campaign);
+  });
+
+  app.put("/v1/campaigns/:campaignId/metadata", async (req, reply) => {
+    const params = campaignIdParamSchema.safeParse(req.params);
+    if (!params.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed campaignId" } });
+    }
+    const body = campaignMetadataRequestSchema.safeParse(req.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed campaign metadata body" } });
+    }
+
+    const outcome = await setCampaignMetadata(deps.pg, params.data.campaignId, body.data);
+    switch (outcome.kind) {
+      case "not_found":
+        return reply.status(404).send({ error: { code: "CAMPAIGN_NOT_FOUND", message: "no such campaign" } });
+      case "bad_signature":
+        return reply.status(401).send({ error: { code: "BAD_SIGNATURE", message: "signature does not match this campaign's seller" } });
+      case "ok":
+        return reply.status(200).send(outcome.campaign);
+    }
   });
 
   return app;
