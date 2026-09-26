@@ -68,6 +68,22 @@ export const linkHistoryQuerySchema = z.object({
 });
 export type LinkHistoryQuery = z.infer<typeof linkHistoryQuerySchema>;
 
+/** Campaign ("product") display metadata — Postgres-only, never touches the Move contract. */
+export const campaignIdParamSchema = z.object({
+  campaignId: z.string().regex(/^0x[0-9a-f]{64}$/),
+});
+export const campaignMetadataRequestSchema = z
+  .object({
+    title: z.string().trim().min(1).max(120),
+    category: z.string().trim().min(1).max(60),
+    description: z.string().trim().max(2000),
+    imageUrl: z.string().url().max(2000),
+    /** Base64 Sui personal-message signature over canonicalJson({campaignId, ...the four fields above}), proving the caller controls campaigns.seller for this campaignId. */
+    signature: z.string().min(1),
+  })
+  .strict();
+export type CampaignMetadataRequest = z.infer<typeof campaignMetadataRequestSchema>;
+
 /** Section 12: POST /v1/oracle/verdict request body. Extra fields are a 400 (strict). */
 export const oracleVerdictRequestSchema = z
   .object({

@@ -1,5 +1,5 @@
 import { LocalKeySigner } from "@kawaipay/oracle-core";
-import { createPgPool, emitAlert, MetricsRegistry, startMetricsServer } from "@kawaipay/shared";
+import { createPgPool, emitAlert, loadEnv, MetricsRegistry, startMetricsServer } from "@kawaipay/shared";
 import { loadConfig } from "./config.js";
 import { SuiGraphQLChainClient } from "./chainClient.js";
 import { tryAcquireLeader } from "./leaderElection.js";
@@ -8,6 +8,7 @@ import { resolveUnknownOutcome } from "./unknownOutcome.js";
 import { estimateIndexerLagMs } from "./guards.js";
 import { registerBatcherMetrics } from "./metrics.js";
 
+loadEnv();
 const config = loadConfig();
 // The leader election below holds one dedicated session-level advisory lock connection
 // (leaderElection.ts) — this MUST be a direct/session-mode connection to Postgres, not a
