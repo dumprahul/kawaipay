@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { loadZkLoginSession } from "@/lib/zklogin";
 import { listCreatorLinks, getLinkHistory, type CreatorLinkSummary } from "@/lib/api";
+import { withTimeout } from "@/lib/withTimeout";
 
 const USDC_DECIMALS = 1_000_000;
 const DAYS_IN_CHART = 14;
@@ -21,57 +22,84 @@ export default function CreatorAnalyticsPage() {
   const [address, setAddress] = useState<string | null>(null);
   const [links, setLinks] = useState<CreatorLinkSummary[] | null>(null);
   const [dailyEarnings, setDailyEarnings] = useState<DayPoint[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function init() {
-      const role = sessionStorage.getItem("kawaii_role");
-      if (role !== "creator") {
-        router.push("/dashboard");
-        return;
-      }
-      const session = await loadZkLoginSession();
-      if (!session) {
-        router.push("/shop");
-        return;
-      }
-      if (cancelled) return;
-      setAddress(session.address);
-
-      const creatorLinks = await listCreatorLinks(session.address);
-      if (cancelled) return;
-      setLinks(creatorLinks);
-
-      // Real daily earnings, built from actual on-chain settlement timestamps — not a
-      // synthetic curve. Bucket every settlement across every link into its calendar day.
-      const perLink = await Promise.all(creatorLinks.map((l) => getLinkHistory(l.linkId, { limit: 100 })));
-      if (cancelled) return;
-
-      const buckets = new Map<string, number>();
-      const today = new Date();
-      for (let i = DAYS_IN_CHART - 1; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        buckets.set(d.toISOString().slice(0, 10), 0);
-      }
-      for (const page of perLink) {
-        for (const s of page?.settlements ?? []) {
-          const day = s.settledAt.slice(0, 10);
-          if (buckets.has(day)) buckets.set(day, (buckets.get(day) ?? 0) + s.amount);
+      try {
+        const role = sessionStorage.getItem("kawaii_role");
+        if (role !== "creator") {
+          router.push("/dashboard");
+          return;
         }
+        const session = await withTimeout(loadZkLoginSession(), 15_000, "Timed out checking your session — please refresh and try again.");
+        if (!session) {
+          router.push("/shop");
+          return;
+        }
+        if (cancelled) return;
+        setAddress(session.address);
+
+        const creatorLinks = await withTimeout(listCreatorLinks(session.address), 15_000, "Timed out loading your links — please refresh and try again.");
+        if (cancelled) return;
+        setLinks(creatorLinks);
+
+        // Real daily earnings, built from actual on-chain settlement timestamps — not a
+        // synthetic curve. Bucket every settlement across every link into its calendar day.
+        // A single link's history failing shouldn't blank out everyone else's — settle for
+        // whatever came back and keep going.
+        const perLink = await Promise.allSettled(creatorLinks.map((l) => getLinkHistory(l.linkId, { limit: 100 })));
+        if (cancelled) return;
+
+        const buckets = new Map<string, number>();
+        const today = new Date();
+        for (let i = DAYS_IN_CHART - 1; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(d.getDate() - i);
+          buckets.set(d.toISOString().slice(0, 10), 0);
+        }
+        for (const result of perLink) {
+          if (result.status !== "fulfilled") {
+            console.error("[creator/analytics] failed to load link history:", result.reason);
+            continue;
+          }
+          for (const s of result.value?.settlements ?? []) {
+            const day = s.settledAt.slice(0, 10);
+            if (buckets.has(day)) buckets.set(day, (buckets.get(day) ?? 0) + s.amount);
+          }
+        }
+        setDailyEarnings(
+          [...buckets.entries()].map(([day, amount]) => ({
+            label: new Date(day).toLocaleDateString(undefined, { month: "numeric", day: "numeric" }),
+            amount: amount / USDC_DECIMALS,
+          })),
+        );
+      } catch (err) {
+        console.error("[creator/analytics] failed to load:", err);
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load your analytics");
       }
-      setDailyEarnings(
-        [...buckets.entries()].map(([day, amount]) => ({
-          label: new Date(day).toLocaleDateString(undefined, { month: "numeric", day: "numeric" }),
-          amount: amount / USDC_DECIMALS,
-        })),
-      );
     }
     init();
     return () => {
       cancelled = true;
     };
   }, [router]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[var(--cream)]">
+        <Navbar />
+        <main className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 max-w-md">{error}</p>
+          <button onClick={() => window.location.reload()} className="text-xs text-[var(--muted-brown)] hover:text-[var(--espresso)] underline underline-offset-2">
+            Try again
+          </button>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!links || !dailyEarnings) {
     return (

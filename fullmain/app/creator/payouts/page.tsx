@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { loadZkLoginSession } from "@/lib/zklogin";
 import { listCreatorLinks, getLinkHistory, type CreatorLinkSummary, type SettlementHistoryEntry } from "@/lib/api";
+import { withTimeout } from "@/lib/withTimeout";
 
 const USDC_DECIMALS = 1_000_000;
 
@@ -33,45 +34,74 @@ export default function CreatorPayoutsPage() {
   const [links, setLinks] = useState<CreatorLinkSummary[] | null>(null);
   const [payouts, setPayouts] = useState<PayoutRow[] | null>(null);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function init() {
-      const role = sessionStorage.getItem("kawaii_role");
-      if (role !== "creator") {
-        router.push("/dashboard");
-        return;
-      }
-      const session = await loadZkLoginSession();
-      if (!session) {
-        router.push("/shop");
-        return;
-      }
-      if (cancelled) return;
-      setAddress(session.address);
+      try {
+        const role = sessionStorage.getItem("kawaii_role");
+        if (role !== "creator") {
+          router.push("/dashboard");
+          return;
+        }
+        const session = await withTimeout(loadZkLoginSession(), 15_000, "Timed out checking your session — please refresh and try again.");
+        if (!session) {
+          router.push("/shop");
+          return;
+        }
+        if (cancelled) return;
+        setAddress(session.address);
 
-      const creatorLinks = await listCreatorLinks(session.address);
-      if (cancelled) return;
-      setLinks(creatorLinks);
+        const creatorLinks = await withTimeout(listCreatorLinks(session.address), 15_000, "Timed out loading your links — please refresh and try again.");
+        if (cancelled) return;
+        setLinks(creatorLinks);
 
-      const perLink = await Promise.all(
-        creatorLinks.map(async (l) => {
-          const page = await getLinkHistory(l.linkId, { limit: 25 });
-          return (page?.settlements ?? []).map((s) => ({ ...s, linkId: l.linkId, productTitle: l.title }));
-        }),
-      );
-      if (cancelled) return;
-      const merged = perLink
-        .flat()
-        .sort((a, b) => new Date(b.settledAt).getTime() - new Date(a.settledAt).getTime());
-      setPayouts(merged);
-      setReady(true);
+        // A single link's history failing shouldn't blank the whole page — settle for
+        // whatever came back and keep going, same as the analytics page.
+        const perLink = await Promise.allSettled(
+          creatorLinks.map(async (l) => {
+            const page = await getLinkHistory(l.linkId, { limit: 25 });
+            return (page?.settlements ?? []).map((s) => ({ ...s, linkId: l.linkId, productTitle: l.title }));
+          }),
+        );
+        if (cancelled) return;
+        const merged = perLink
+          .flatMap((r) => {
+            if (r.status !== "fulfilled") {
+              console.error("[creator/payouts] failed to load link history:", r.reason);
+              return [];
+            }
+            return r.value;
+          })
+          .sort((a, b) => new Date(b.settledAt).getTime() - new Date(a.settledAt).getTime());
+        setPayouts(merged);
+        setReady(true);
+      } catch (err) {
+        console.error("[creator/payouts] failed to load:", err);
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load your payouts");
+      }
     }
     init();
     return () => {
       cancelled = true;
     };
   }, [router]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[var(--cream)]">
+        <Navbar />
+        <main className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 max-w-md">{error}</p>
+          <button onClick={() => window.location.reload()} className="text-xs text-[var(--muted-brown)] hover:text-[var(--espresso)] underline underline-offset-2">
+            Try again
+          </button>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!ready || !links || !payouts) {
     return (
