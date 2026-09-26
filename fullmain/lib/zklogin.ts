@@ -1,254 +1,88 @@
-import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { SuiGraphQLClient } from "@mysten/sui/graphql";
-import {
-  generateNonce,
-  generateRandomness,
-  getExtendedEphemeralPublicKey,
-  getZkLoginSignature,
-  jwtToAddress,
-  genAddressSeed,
-} from "@mysten/sui/zklogin";
+import type { AuthProvider } from "@mysten/enoki";
 import { jwtDecode } from "jwt-decode";
+import { getEnokiFlow, ENOKI_NETWORK } from "./enoki";
 
-const PROVER_URL =
-  process.env.NEXT_PUBLIC_PROVER_URL ||
-  "https://prover-dev.mystenlabs.com/v1";
-const SALT_SERVICE_URL =
-  process.env.NEXT_PUBLIC_SALT_SERVICE_URL ||
-  "https://salt.api.mystenlabs.com/get_salt";
 const SUI_NETWORK = process.env.NEXT_PUBLIC_SUI_NETWORK || "testnet";
-
 const GRAPHQL_URL = `https://graphql.${SUI_NETWORK}.sui.io/graphql`;
 
 export const suiClient = new SuiGraphQLClient({ url: GRAPHQL_URL, network: SUI_NETWORK });
 
-export interface EphemeralSession {
-  keypair: Ed25519Keypair;
-  randomness: string;
-  nonce: string;
-  maxEpoch: number;
-}
-
-export interface ZkLoginProof {
-  proofPoints: {
-    a: string[];
-    b: string[][];
-    c: string[];
-  };
-  issBase64Details: {
-    value: string;
-    indexMod4: number;
-  };
-  headerBase64: string;
-}
+// Enoki's AuthProvider type has no "apple" entry (unlike our original design's
+// Google/Apple/Twitch), so the Apple option is dropped from creator/owner login.
+export type ZkLoginProvider = Extract<AuthProvider, "google" | "twitch">;
 
 export interface ZkLoginSession {
-  proof: ZkLoginProof;
   address: string;
-  salt: string;
-  jwt: string;
-  maxEpoch: number;
-  keypair: Ed25519Keypair;
+  provider: AuthProvider;
 }
 
-// Step 1 — generate ephemeral keypair + nonce, store in sessionStorage
-export async function createEphemeralSession(): Promise<EphemeralSession> {
-  // Fetch current epoch via GraphQL
-  const res = await fetch(GRAPHQL_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: "{ epoch { epochId } }" }),
-  });
-  const { data } = await res.json();
-  const maxEpoch = Number(data.epoch.epochId) + 2;
-
-  const keypair = new Ed25519Keypair();
-  const randomness = generateRandomness();
-  const nonce = generateNonce(keypair.getPublicKey(), maxEpoch, randomness);
-
-  sessionStorage.setItem(
-    "zklogin_ephemeral",
-    JSON.stringify({
-      keypairSecret: keypair.getSecretKey(),
-      randomness,
-      nonce,
-      maxEpoch,
-    })
-  );
-
-  return { keypair, randomness, nonce, maxEpoch };
-}
-
-// Restore ephemeral session from sessionStorage (used on callback page)
-export function restoreEphemeralSession(): EphemeralSession | null {
-  const raw = sessionStorage.getItem("zklogin_ephemeral");
-  if (!raw) return null;
-  const { keypairSecret, randomness, nonce, maxEpoch } = JSON.parse(raw);
-  const keypair = Ed25519Keypair.fromSecretKey(keypairSecret);
-  return { keypair, randomness, nonce, maxEpoch };
-}
-
-// Step 2 — build OAuth redirect URL for each provider
-export function buildOAuthUrl(
-  provider: "google" | "apple" | "twitch",
-  nonce: string
-): string {
-  const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI!;
-
-  if (provider === "google") {
-    const params = new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-      response_type: "id_token",
-      redirect_uri: redirectUri,
-      scope: "openid",
-      nonce,
-    });
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  }
-
-  if (provider === "apple") {
-    const params = new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID!,
-      redirect_uri: redirectUri,
-      scope: "email",
-      response_mode: "form_post",
-      response_type: "code id_token",
-      nonce,
-    });
-    return `https://appleid.apple.com/auth/authorize?${params}`;
-  }
-
-  if (provider === "twitch") {
-    const params = new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID!,
-      force_verify: "true",
-      redirect_uri: redirectUri,
-      response_type: "id_token",
-      scope: "openid",
-      nonce,
-    });
-    return `https://id.twitch.tv/oauth2/authorize?${params}`;
-  }
-
-  throw new Error(`Unknown provider: ${provider}`);
-}
-
-// Step 3 — fetch user salt via local proxy (avoids CORS from browser)
-export async function fetchUserSalt(jwt: string): Promise<string> {
-  const res = await fetch("/api/salt", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token: jwt }),
-  });
-  if (!res.ok) throw new Error(`Salt service error: ${res.status}`);
-  const { salt } = await res.json();
-  return salt;
-}
-
-// Step 4 — derive Sui address from JWT + salt
-export function deriveAddress(jwt: string, salt: string): string {
-  return jwtToAddress(jwt, salt, false);
-}
-
-// Step 5 — call prover via local proxy (avoids CORS from browser)
-export async function fetchZkProof(
-  jwt: string,
-  ephemeralSession: EphemeralSession,
-  salt: string
-): Promise<ZkLoginProof> {
-  const extendedEphemeralPublicKey = getExtendedEphemeralPublicKey(
-    ephemeralSession.keypair.getPublicKey()
-  );
-
-  const res = await fetch("/api/prover", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jwt,
-      extendedEphemeralPublicKey,
-      maxEpoch: ephemeralSession.maxEpoch.toString(),
-      jwtRandomness: ephemeralSession.randomness,
-      salt,
-      keyClaimName: "sub",
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Prover error ${res.status}: ${err}`);
-  }
-
-  return res.json();
-}
-
-// Shared by both signature builders below: wraps an already-computed ephemeral
-// signature (over either transaction bytes or a personal message) into the full
-// zkLogin signature Sui's verifier expects.
-function assembleZkLoginSignature(session: ZkLoginSession, ephemeralSignature: string): string {
-  const decoded = jwtDecode<{ sub: string; aud: string | string[] }>(
-    session.jwt
-  );
-  const aud = Array.isArray(decoded.aud) ? decoded.aud[0] : decoded.aud;
-
-  const addressSeed = genAddressSeed(
-    BigInt(session.salt),
-    "sub",
-    decoded.sub,
-    aud
-  ).toString();
-
-  return getZkLoginSignature({
-    inputs: {
-      ...session.proof,
-      addressSeed,
-    },
-    maxEpoch: session.maxEpoch,
-    userSignature: ephemeralSignature,
+// Step 1 — kick off the OAuth redirect. Enoki generates and stores the ephemeral
+// keypair/nonce/maxEpoch internally; we just need the resulting authorization URL.
+export async function startZkLogin(provider: ZkLoginProvider): Promise<string> {
+  const flow = getEnokiFlow();
+  return flow.createAuthorizationURL({
+    provider,
+    clientId:
+      provider === "google"
+        ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!
+        : process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID!,
+    redirectUrl: process.env.NEXT_PUBLIC_REDIRECT_URI!,
+    network: ENOKI_NETWORK,
   });
 }
 
-// Step 6 — assemble full zkLogin signature for a transaction
-export async function buildZkLoginSignature(
-  session: ZkLoginSession,
-  transactionBytes: Uint8Array
-): Promise<string> {
-  const { signature: ephemeralSignature } =
-    await session.keypair.signTransaction(transactionBytes);
-  return assembleZkLoginSignature(session, ephemeralSignature);
+// Step 2 — called from the OAuth callback page. Enoki reads the id_token out of
+// window.location.hash itself, verifies it, fetches salt + proof from its own hosted
+// infra, and persists everything.
+export async function completeZkLogin(): Promise<void> {
+  const flow = getEnokiFlow();
+  await flow.handleAuthCallback();
+  // handleAuthCallback resolves the JWT/session but getSession() is what actually
+  // fetches+caches the ZK proof — call it now so the first "List Product"/"Share &
+  // Earn" action doesn't have to eat that latency on top of its own tx build+submit.
+  await flow.getSession();
 }
 
-// Step 6b — assemble full zkLogin signature for a personal message (not a transaction).
-// This is what our backend's PUT /v1/campaigns/:id/metadata checks via
-// isValidPersonalMessageSignature — that verifier is scheme-agnostic, so a zkLogin
-// signature here works exactly like a plain Ed25519 one would.
-export async function buildZkLoginPersonalMessageSignature(
-  session: ZkLoginSession,
-  message: Uint8Array
-): Promise<string> {
-  const { signature: ephemeralSignature } =
-    await session.keypair.signPersonalMessage(message);
-  return assembleZkLoginSignature(session, ephemeralSignature);
-}
-
-// Save completed zkLogin session to sessionStorage
-export function saveZkLoginSession(
-  session: Omit<ZkLoginSession, "keypair"> & { keypairSecret: string }
-) {
-  sessionStorage.setItem("zklogin_session", JSON.stringify(session));
-}
-
-// Restore zkLogin session from sessionStorage
-export function loadZkLoginSession(): ZkLoginSession | null {
-  const raw = sessionStorage.getItem("zklogin_session");
-  if (!raw) return null;
-  const { keypairSecret, ...rest } = JSON.parse(raw);
-  const keypair = Ed25519Keypair.fromSecretKey(keypairSecret);
-  return { ...rest, keypair };
+// Read the current zkLogin session (address + provider), if any. Always async: Enoki's
+// internal state is restored from encrypted storage on construction, and we must wait
+// for that restore to finish before trusting $zkLoginState.
+export async function loadZkLoginSession(): Promise<ZkLoginSession | null> {
+  if (typeof window === "undefined") return null;
+  const flow = getEnokiFlow();
+  const session = await flow.getSession();
+  if (!session) return null;
+  const { address, provider } = flow.$zkLoginState.get();
+  if (!address || !provider) return null;
+  return { address, provider };
 }
 
 export function clearZkLoginSession() {
-  sessionStorage.removeItem("zklogin_session");
-  sessionStorage.removeItem("zklogin_ephemeral");
+  if (typeof window === "undefined") return;
+  void getEnokiFlow().logout();
+}
+
+// Step 3 — sign transaction bytes with the logged-in creator/owner's zkLogin identity.
+// EnokiKeypair (a real Signer) assembles the complete zkLogin signature internally —
+// no manual genAddressSeed/getZkLoginSignature assembly needed anymore.
+export async function buildZkLoginSignature(
+  _session: ZkLoginSession,
+  transactionBytes: Uint8Array
+): Promise<string> {
+  const keypair = await getEnokiFlow().getKeypair({ network: ENOKI_NETWORK });
+  const { signature } = await keypair.signTransaction(transactionBytes);
+  return signature;
+}
+
+// Step 3b — same, for a personal message (used by the campaign-metadata PUT, whose
+// verifier is scheme-agnostic and accepts a zkLogin signature just like an Ed25519 one).
+export async function buildZkLoginPersonalMessageSignature(
+  _session: ZkLoginSession,
+  message: Uint8Array
+): Promise<string> {
+  const keypair = await getEnokiFlow().getKeypair({ network: ENOKI_NETWORK });
+  const { signature } = await keypair.signPersonalMessage(message);
+  return signature;
 }
 
 // Plain Google OAuth for buyers — no nonce/zkLogin, just email + name
@@ -284,4 +118,6 @@ export function clearBuyerSession() {
   sessionStorage.removeItem("buyer_session");
 }
 
-
+// Used only by the buyer OAuth path in the callback page (jwtDecode re-exported so that
+// page doesn't need its own direct dependency on jwt-decode for this one call).
+export { jwtDecode };

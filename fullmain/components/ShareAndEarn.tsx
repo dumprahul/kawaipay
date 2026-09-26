@@ -14,7 +14,7 @@ export default function ShareAndEarn({ product }: { product: Product }) {
   const [error, setError] = useState<string | null>(null);
 
   async function handleCreateLink() {
-    const session = loadZkLoginSession();
+    const session = await loadZkLoginSession();
     if (!session) {
       setError("Sign in as a creator first to create a real shareable link.");
       setStatus("error");

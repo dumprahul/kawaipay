@@ -14,7 +14,11 @@ export default function Navbar() {
   const router = useRouter();
 
   useEffect(() => {
-    setIsLoggedIn(!!(loadZkLoginSession() || loadBuyerSession()));
+    if (loadBuyerSession()) {
+      setIsLoggedIn(true);
+      return;
+    }
+    loadZkLoginSession().then((session) => setIsLoggedIn(!!session));
   }, []);
 
   function handleSearch(e: React.FormEvent) {

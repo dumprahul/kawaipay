@@ -2,26 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
-import {
-  restoreEphemeralSession,
-  fetchUserSalt,
-  deriveAddress,
-  fetchZkProof,
-  saveZkLoginSession,
-  saveBuyerSession,
-} from "@/lib/zklogin";
+import { jwtDecode, completeZkLogin, saveBuyerSession } from "@/lib/zklogin";
 
 type Status =
   | "extracting"
-  | "fetching_salt"
   | "generating_proof"
   | "done"
   | "error";
 
 const statusMessages: Record<Status, string> = {
   extracting: "Reading your identity...",
-  fetching_salt: "Fetching your address salt...",
   generating_proof: "Generating zero-knowledge proof (this takes ~3 seconds)...",
   done: "All done! Redirecting...",
   error: "Something went wrong.",
@@ -62,42 +52,10 @@ export default function CallbackPage() {
           return;
         }
 
-        // Creator / Product Owner: full zkLogin → Sui address
-        const ephemeral = restoreEphemeralSession();
-        if (!ephemeral) {
-          throw new Error(
-            "Ephemeral session expired or not found. Please try logging in again."
-          );
-        }
-
-        setStatus("fetching_salt");
-        const salt = await fetchUserSalt(jwt);
-        const address = deriveAddress(jwt, salt);
-
+        // Creator / Product Owner: full zkLogin → Sui address, via Enoki (handles
+        // salt + ZK proof fetching and session persistence internally).
         setStatus("generating_proof");
-        let proof;
-        let lastErr: unknown;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            proof = await fetchZkProof(jwt, ephemeral, salt);
-            break;
-          } catch (e) {
-            lastErr = e;
-            const is429 = e instanceof Error && e.message.includes("429");
-            if (!is429 || attempt === 2) throw e;
-            await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
-          }
-        }
-        if (!proof) throw lastErr;
-
-        saveZkLoginSession({
-          proof,
-          address,
-          salt,
-          jwt,
-          maxEpoch: ephemeral.maxEpoch,
-          keypairSecret: ephemeral.keypair.getSecretKey(),
-        });
+        await completeZkLogin();
 
         setStatus("done");
         router.push("/dashboard");
@@ -133,12 +91,12 @@ export default function CallbackPage() {
             </svg>
             <p className="text-[var(--espresso)] font-medium">{statusMessages[status]}</p>
             <div className="flex justify-center gap-1">
-              {(["extracting", "fetching_salt", "generating_proof", "done"] as Status[]).map((s) => (
+              {(["extracting", "generating_proof", "done"] as Status[]).map((s) => (
                 <div
                   key={s}
                   className={`h-1.5 w-8 rounded-full transition-colors ${
-                    ["extracting", "fetching_salt", "generating_proof", "done"].indexOf(s) <=
-                    ["extracting", "fetching_salt", "generating_proof", "done"].indexOf(status)
+                    ["extracting", "generating_proof", "done"].indexOf(s) <=
+                    ["extracting", "generating_proof", "done"].indexOf(status)
                       ? "bg-[var(--accent-green)]"
                       : "bg-[var(--sand)]"
                   }`}

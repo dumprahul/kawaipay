@@ -26,17 +26,20 @@ export default function DashboardPage() {
     const r = sessionStorage.getItem("kawaii_role");
     setRole(r);
 
-    if (r === "buyer") {
-      const bs = loadBuyerSession();
-      if (!bs) { router.push("/shop"); return; }
-      setBuyer(bs);
-    } else {
-      const session = loadZkLoginSession();
-      if (!session) { router.push("/shop"); return; }
-      setAddress(session.address);
-      fetchBalance(session.address);
+    async function init() {
+      if (r === "buyer") {
+        const bs = loadBuyerSession();
+        if (!bs) { router.push("/shop"); return; }
+        setBuyer(bs);
+      } else {
+        const session = await loadZkLoginSession();
+        if (!session) { router.push("/shop"); return; }
+        setAddress(session.address);
+        fetchBalance(session.address);
+      }
+      setReady(true);
     }
-    setReady(true);
+    init();
   }, [router]);
 
   async function fetchBalance(addr: string) {

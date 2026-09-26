@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buildOAuthUrl, createEphemeralSession, buildBuyerOAuthUrl } from "@/lib/zklogin";
+import { startZkLogin, buildBuyerOAuthUrl } from "@/lib/zklogin";
 
 type Role = "buyer" | "creator" | "owner";
 
@@ -59,9 +59,8 @@ export default function LoginModal({ onClose }: LoginModalProps) {
         const url = buildBuyerOAuthUrl();
         window.location.href = url;
       } else {
-        // Creator / Product Owner — full zkLogin → Sui address
-        const session = await createEphemeralSession();
-        const url = buildOAuthUrl("google", session.nonce);
+        // Creator / Product Owner — full zkLogin → Sui address, via Enoki
+        const url = await startZkLogin("google");
         window.location.href = url;
       }
     } catch (e) {

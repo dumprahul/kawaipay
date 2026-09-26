@@ -73,7 +73,7 @@ function AddProductModal({
     }
     setChainError(null);
 
-    const session = loadZkLoginSession();
+    const session = await loadZkLoginSession();
     if (!session) {
       setChainError("Your session expired — please sign in again.");
       return;
