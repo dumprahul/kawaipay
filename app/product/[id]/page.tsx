@@ -1,30 +1,54 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import PromoBar from "@/components/PromoBar";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductGallery from "@/components/ProductGallery";
 import ProductInfo from "@/components/ProductInfo";
 import ShareAndEarn from "@/components/ShareAndEarn";
 import ProductGrid from "@/components/ProductGrid";
-import { getProduct, PRODUCTS } from "@/lib/products";
-import { notFound } from "next/navigation";
+import { getAllProducts } from "@/lib/productStore";
+import type { Product } from "@/lib/products";
 
-interface Props {
-  params: Promise<{ id: string }>;
-}
+export default function ProductPage() {
+  const { id } = useParams<{ id: string }>();
+  const [product, setProduct] = useState<Product | null | undefined>(undefined);
+  const [related, setRelated] = useState<Product[]>([]);
 
-export default async function ProductPage({ params }: Props) {
-  const { id } = await params;
-  const product = getProduct(id);
-  if (!product) notFound();
+  useEffect(() => {
+    const all = getAllProducts();
+    const found = all.find((p) => p.id === id) ?? null;
+    setProduct(found);
+    if (found) {
+      setRelated(all.filter((p) => p.category === found.category && p.id !== found.id).slice(0, 4));
+    }
+  }, [id]);
 
-  const related = PRODUCTS.filter(
-    (p) => p.category === product.category && p.id !== product.id
-  ).slice(0, 4);
+  // Still loading
+  if (product === undefined) return null;
+
+  // Not found
+  if (product === null) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-3">
+            <p className="text-2xl font-bold text-[var(--espresso)]">Product not found</p>
+            <Link href="/shop" className="text-sm text-[var(--muted-brown)] hover:text-[var(--espresso)] underline">
+              Back to shop
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <PromoBar />
       <Navbar />
       <main className="flex-1">
         {/* Breadcrumbs */}
@@ -49,7 +73,7 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Product tabs */}
+        {/* Description */}
         <div className="max-w-7xl mx-auto px-6 py-10 border-t border-[var(--sand)]">
           <div className="space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-[var(--muted-brown)]">Description</h2>
@@ -57,7 +81,7 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Related products */}
+        {/* Related */}
         {related.length > 0 && (
           <div className="border-t border-[var(--sand)]">
             <ProductGrid products={related} title="You might also like" />

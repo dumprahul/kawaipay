@@ -1,24 +1,50 @@
-import PromoBar from "@/components/PromoBar";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductGrid from "@/components/ProductGrid";
-import { getProductsByCategory, CATEGORIES } from "@/lib/products";
-import { notFound } from "next/navigation";
+import { CATEGORIES, type Product } from "@/lib/products";
+import { getAllProducts, getOwnerProducts } from "@/lib/productStore";
 
-interface Props {
-  params: Promise<{ slug: string }>;
-}
+export default function CategoryPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [label, setLabel] = useState<string>("");
+  const [notFound, setNotFound] = useState(false);
 
-export default async function CategoryPage({ params }: Props) {
-  const { slug } = await params;
-  const label = CATEGORIES.find((c) => c.toLowerCase() === slug.toLowerCase());
-  if (!label) notFound();
+  useEffect(() => {
+    const matched = CATEGORIES.find((c) => c.toLowerCase() === slug.toLowerCase());
+    if (!matched) { setNotFound(true); return; }
+    setLabel(matched);
 
-  const products = getProductsByCategory(label);
+    const all = getAllProducts();
+    const ownerIds = new Set(getOwnerProducts().map((p) => p.id));
+
+    const inCategory = all.filter((p) => p.category === matched);
+    // Owner-added products appear first
+    const sorted = [
+      ...inCategory.filter((p) => ownerIds.has(p.id)),
+      ...inCategory.filter((p) => !ownerIds.has(p.id)),
+    ];
+    setProducts(sorted);
+  }, [slug]);
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <p className="text-[var(--espresso)] font-semibold">Category not found</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <PromoBar />
       <Navbar />
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-6 pt-10">
