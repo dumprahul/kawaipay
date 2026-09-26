@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fastify/cors": "^9.0.1",
     "@kawaipay/oracle-core": "workspace:*",
     "@kawaipay/shared": "workspace:*",
     "@mysten/sui": "^2.33.1",
