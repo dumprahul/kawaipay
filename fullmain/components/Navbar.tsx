@@ -11,9 +11,11 @@ export default function Navbar() {
   const [query, setQuery] = useState("");
   const [loginOpen, setLoginOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    setRole(sessionStorage.getItem("kawaii_role"));
     if (loadBuyerSession()) {
       setIsLoggedIn(true);
       return;
@@ -45,6 +47,15 @@ export default function Navbar() {
             <Link href="/shop" className="hover:text-[var(--espresso)] transition-colors">Shop</Link>
             <Link href="/search" className="hover:text-[var(--espresso)] transition-colors">Categories</Link>
             <Link href="/search?q=trending" className="hover:text-[var(--espresso)] transition-colors">Trending</Link>
+            {isLoggedIn && role === "creator" && (
+              <>
+                <Link href="/creator/payouts" className="hover:text-[var(--espresso)] transition-colors">Payouts</Link>
+                <Link href="/creator/analytics" className="hover:text-[var(--espresso)] transition-colors">Analytics</Link>
+              </>
+            )}
+            {isLoggedIn && role === "owner" && (
+              <Link href="/owner/analytics" className="hover:text-[var(--espresso)] transition-colors">Analytics</Link>
+            )}
           </div>
 
           {/* Right actions */}

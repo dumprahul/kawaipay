@@ -231,7 +231,7 @@ interface ProductAnalytics {
   budgetRemaining: number;
 }
 
-function AnalyticsTab({ products }: { products: Product[] }) {
+export function AnalyticsTab({ products }: { products: Product[] }) {
   const [rows, setRows] = useState<ProductAnalytics[] | null>(null);
 
   useEffect(() => {

@@ -121,6 +121,24 @@ export async function listCampaignLinks(campaignId: string): Promise<CampaignLin
   return links;
 }
 
+export interface CreatorLinkSummary {
+  linkId: string;
+  campaignId: string;
+  title: string | null;
+  imageUrl: string | null;
+  frozen: boolean;
+  budgetRemaining: number;
+  totalPaid: number;
+  earnedTotal: number;
+  settledTotal: number;
+}
+
+/** Every link a creator owns, across every campaign they've promoted — real, for the creator's payouts/analytics pages. */
+export async function listCreatorLinks(address: string): Promise<CreatorLinkSummary[]> {
+  const { links } = await request<{ links: CreatorLinkSummary[] }>(`/v1/creators/${address}/links`);
+  return links;
+}
+
 /** Sets a campaign's product listing (title/category/description/image/price) — Postgres only. Requires a real Sui personal-message signature from the campaign's on-chain seller. */
 export async function setCampaignMetadata(campaignId: string, fields: CampaignMetadataInput, signature: string): Promise<CampaignRecord> {
   return request(`/v1/campaigns/${campaignId}/metadata`, {

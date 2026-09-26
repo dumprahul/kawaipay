@@ -19,6 +19,7 @@ import { getLinkHistory } from "./history.js";
 import { getCampaign, setCampaignMetadata } from "./campaignMetadata.js";
 import { listCampaigns } from "./campaignList.js";
 import { listCampaignLinks } from "./campaignLinks.js";
+import { listLinksByCreator } from "./creatorLinks.js";
 import { registerGatewayMetrics } from "./metrics.js";
 import type { WorldIdConfig } from "./config.js";
 import { generateRpSignature, getWorldIdStatus, verifyWorldIdProof } from "./worldId.js";
@@ -143,6 +144,15 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed campaignId" } });
     }
     const links = await listCampaignLinks(deps.pg, params.data.campaignId);
+    return reply.status(200).send({ links });
+  });
+
+  app.get("/v1/creators/:address/links", async (req, reply) => {
+    const params = z.object({ address: suiAddressSchema }).safeParse(req.params);
+    if (!params.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed address" } });
+    }
+    const links = await listLinksByCreator(deps.pg, params.data.address);
     return reply.status(200).send({ links });
   });
 
