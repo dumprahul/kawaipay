@@ -15,12 +15,18 @@ const app = buildApp({
   tickMs: config.tickMs,
   sessionTtlMs: config.sessionTtlMs,
   ipHashSalt: config.ipHashSalt,
+  worldId: config.worldId,
+  worldIdFreePayouts: config.worldIdFreePayouts,
 });
 
 app
   .listen({ port: config.port, host: "0.0.0.0" })
-  .then(() => console.log(`kawaipay-gateway listening on :${config.port}`))
+  .then(() =>
+    console.log(
+      JSON.stringify({ msg: "gateway listening", service: "gateway", port: config.port, worldIdConfigured: config.worldId !== null }),
+    ),
+  )
   .catch((err) => {
-    console.error(err);
+    console.error(JSON.stringify({ msg: "gateway failed to start", service: "gateway", error: err instanceof Error ? err.message : String(err) }));
     process.exit(1);
   });

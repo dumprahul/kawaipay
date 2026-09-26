@@ -157,3 +157,21 @@ CREATE TABLE used_payments (
   response jsonb NOT NULL, -- stored so a retry with the same payment returns the same result
   used_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- World ID proof-of-humanity (written by the gateway's /v1/worldid/verify, read by the
+-- batcher to gate payouts). A creator's first WORLD_ID_FREE_PAYOUTS settlements need no
+-- verification at all; every payout after that needs a row here with verified_at within
+-- the last WORLD_ID_VALIDITY_DAYS. nullifier_hash is UNIQUE so the same physical human
+-- can't hold verified status on two different Sui addresses at once.
+CREATE TABLE verified_creators (
+  sui_address text PRIMARY KEY,
+  nullifier_hash text UNIQUE NOT NULL,
+  verified_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Replay protection for World ID proofs, mirroring used_payments above.
+CREATE TABLE used_worldid_nonces (
+  nonce text PRIMARY KEY,
+  nullifier_hash text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);

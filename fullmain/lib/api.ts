@@ -182,4 +182,38 @@ export async function sendHeartbeat(body: HeartbeatBody): Promise<HeartbeatResul
   return request(`/v1/heartbeat`, { method: "POST", body: JSON.stringify(body) });
 }
 
+export interface WorldIdStatus {
+  verified: boolean;
+  verifiedAt: string | null;
+  verifiedUntil: string | null;
+  payoutCount: number;
+  freePayoutsRemaining: number;
+}
+
+/** Current Proof-of-Humanity standing for a creator — whether payouts beyond their free ones are unblocked right now. */
+export async function getWorldIdStatus(address: string): Promise<WorldIdStatus> {
+  return request(`/v1/worldid/status?address=${address}`);
+}
+
+export interface WorldIdRpSignature {
+  rp_context: {
+    rp_id: string;
+    nonce: string;
+    created_at: number;
+    expires_at: number;
+    signature: string;
+  };
+  action: string;
+}
+
+/** Step 1 of verifying: a server-signed context the IDKit widget needs before it can open. */
+export async function getWorldIdRpSignature(address: string): Promise<WorldIdRpSignature> {
+  return request(`/v1/worldid/rp-signature`, { method: "POST", body: JSON.stringify({ suiAddress: address }) });
+}
+
+/** Step 2: hands the completed World ID proof to the gateway, which checks it with World directly. */
+export async function verifyWorldId(address: string, idkitResult: unknown): Promise<{ verified: true; verifiedUntil: string }> {
+  return request(`/v1/worldid/verify`, { method: "POST", body: JSON.stringify({ suiAddress: address, idkitResult }) });
+}
+
 export { ApiError };

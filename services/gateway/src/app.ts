@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
+import { z } from "zod";
 import type { Pool } from "pg";
 import type { Redis } from "ioredis";
 import {
@@ -19,6 +20,8 @@ import { getCampaign, setCampaignMetadata } from "./campaignMetadata.js";
 import { listCampaigns } from "./campaignList.js";
 import { listCampaignLinks } from "./campaignLinks.js";
 import { registerGatewayMetrics } from "./metrics.js";
+import type { WorldIdConfig } from "./config.js";
+import { generateRpSignature, getWorldIdStatus, verifyWorldIdProof } from "./worldId.js";
 
 export interface AppDeps {
   pg: Pool;
@@ -27,8 +30,12 @@ export interface AppDeps {
   tickMs: number;
   sessionTtlMs: number;
   ipHashSalt: string;
+  worldId: WorldIdConfig | null;
+  worldIdFreePayouts: number;
   metricsRegistry?: MetricsRegistry;
 }
+
+const suiAddressSchema = z.string().regex(/^0x[0-9a-f]{64}$/);
 
 const log = (msg: string, meta?: Record<string, unknown>) => console.log(JSON.stringify({ msg, service: "gateway", ...meta }));
 
@@ -170,6 +177,58 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       case "ok":
         return reply.status(200).send(outcome.campaign);
     }
+  });
+
+  app.post("/v1/worldid/rp-signature", async (req, reply) => {
+    const body = z.object({ suiAddress: suiAddressSchema }).safeParse(req.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed suiAddress" } });
+    }
+    if (!deps.worldId) {
+      return reply.status(503).send({ error: { code: "WORLD_ID_NOT_CONFIGURED", message: "World ID credentials are not set on this deployment yet" } });
+    }
+    const result = generateRpSignature(deps.worldId);
+    log("worldid rp-signature issued", { suiAddress: body.data.suiAddress });
+    return reply.status(200).send(result);
+  });
+
+  app.post("/v1/worldid/verify", async (req, reply) => {
+    const body = z.object({ suiAddress: suiAddressSchema, idkitResult: z.unknown() }).safeParse(req.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed verify body" } });
+    }
+    if (!deps.worldId) {
+      return reply.status(503).send({ error: { code: "WORLD_ID_NOT_CONFIGURED", message: "World ID credentials are not set on this deployment yet" } });
+    }
+
+    const outcome = await verifyWorldIdProof(deps.pg, deps.worldId, body.data.suiAddress, body.data.idkitResult);
+    log("worldid verify", { suiAddress: body.data.suiAddress, outcome: outcome.kind });
+
+    switch (outcome.kind) {
+      case "verified":
+        return reply.status(200).send({ verified: true, verifiedUntil: outcome.verifiedUntil });
+      case "world_rejected":
+        return reply.status(400).send({ error: { code: "WORLD_ID_REJECTED", message: "World rejected this proof", detail: outcome.detail } });
+      case "no_nullifier":
+        return reply.status(400).send({ error: { code: "NO_NULLIFIER", message: "no nullifier found in verification result" } });
+      case "replay":
+        return reply.status(409).send({ error: { code: "REPLAY", message: "this proof has already been used" } });
+      case "nullifier_bound_elsewhere":
+        return reply
+          .status(409)
+          .send({ error: { code: "NULLIFIER_BOUND_ELSEWHERE", message: "this World ID is already verified for a different Sui address" } });
+      case "network_error":
+        return reply.status(502).send({ error: { code: "WORLD_UNREACHABLE", message: outcome.message } });
+    }
+  });
+
+  app.get("/v1/worldid/status", async (req, reply) => {
+    const query = z.object({ address: suiAddressSchema }).safeParse(req.query);
+    if (!query.success) {
+      return reply.status(400).send({ error: { code: "INVALID_REQUEST", message: "malformed address" } });
+    }
+    const status = await getWorldIdStatus(deps.pg, query.data.address, deps.worldIdFreePayouts);
+    return reply.status(200).send(status);
   });
 
   return app;

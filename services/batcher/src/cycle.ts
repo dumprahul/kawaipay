@@ -5,6 +5,7 @@ import { checkGuards, estimateIndexerLagMs, hasSubmittedBatch, type GuardFailure
 import { markBatchStatus, markItemStatus, releaseItem, reserveBatch, selectEligibleLinks, type ReservedItem } from "./selection.js";
 import { dryRunAndBisect } from "./dryRunBisect.js";
 import { buildSettleTransaction, type PtbConfig } from "./ptb.js";
+import { partitionByWorldIdEligibility, type WorldIdGateConfig } from "./worldIdGate.js";
 
 export interface CycleConfig {
   maxItemsPerBatch: number;
@@ -16,6 +17,7 @@ export interface CycleConfig {
   logSecret: string;
   /** Fixed per-item gas budget until a proper dry-run-based estimate is wired in (see note below). */
   gasBudgetPerItem: number;
+  worldId: WorldIdGateConfig;
 }
 
 export interface CycleDeps {
@@ -68,14 +70,25 @@ export async function runCycle(deps: CycleDeps, config: CycleConfig): Promise<Cy
     return { kind: "skipped_guard", guard: guardFailure, alerts: [] };
   }
 
-  const links = await selectEligibleLinks(pg, config.maxItemsPerBatch);
-  if (links.length === 0) {
+  const candidates = await selectEligibleLinks(pg, config.maxItemsPerBatch);
+  if (candidates.length === 0) {
     return { kind: "idle", alerts: [] };
+  }
+
+  const worldIdResult = await partitionByWorldIdEligibility(pg, candidates, config.worldId);
+  const worldIdAlerts: CycleAlert[] = worldIdResult.blocked.map((b) => ({
+    linkId: b.linkId,
+    reason: b.reason,
+    detail: { creator: b.creator, payoutCount: b.payoutCount, freePayouts: config.worldId.freePayouts },
+  }));
+  const links = worldIdResult.eligible;
+  if (links.length === 0) {
+    return { kind: "idle", alerts: worldIdAlerts };
   }
 
   const reserved = await reserveBatch(pg, signer, links, config.logSecret, Date.now());
   if (reserved.batchId === null || reserved.items.length === 0) {
-    return { kind: "idle", alerts: reserved.alerts };
+    return { kind: "idle", alerts: [...worldIdAlerts, ...reserved.alerts] };
   }
 
   const ptbConfig: PtbConfig = { packageId: config.packageId, registryId: config.registryId, usdcType: config.usdcType };
@@ -87,7 +100,12 @@ export async function runCycle(deps: CycleDeps, config: CycleConfig): Promise<Cy
 
   if (bisected.succeeded.length === 0) {
     await markBatchStatus(pg, reserved.batchId, "failed", "all items failed dry-run");
-    return { kind: "all_failed_dry_run", batchId: reserved.batchId, failedCount: bisected.failed.length, alerts: reserved.alerts };
+    return {
+      kind: "all_failed_dry_run",
+      batchId: reserved.batchId,
+      failedCount: bisected.failed.length,
+      alerts: [...worldIdAlerts, ...reserved.alerts],
+    };
   }
 
   const finalTx = buildSettleTransaction(bisected.succeeded, ptbConfig);
@@ -121,7 +139,7 @@ export async function runCycle(deps: CycleDeps, config: CycleConfig): Promise<Cy
     itemCount: bisected.succeeded.length,
     failedCount: bisected.failed.length,
     success: outcome.success,
-    alerts: reserved.alerts,
+    alerts: [...worldIdAlerts, ...reserved.alerts],
     items: (bisected.succeeded as ReservedItem[]).map((item) => ({
       linkId: item.linkId,
       campaignId: item.campaignId,

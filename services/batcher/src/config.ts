@@ -31,6 +31,9 @@ export function loadConfig() {
     minSettleUnits: optionalInt("MIN_SETTLE_UNITS", MIN_SETTLE_UNITS),
     mirrorMaxLagMs: optionalInt("MIRROR_MAX_LAG_MS", MIRROR_MAX_LAG_MS),
     metricsPort: optionalInt("METRICS_PORT", 9101),
+    // World ID payout gating — must match the gateway's own WORLD_ID_FREE_PAYOUTS.
+    worldIdFreePayouts: optionalInt("WORLD_ID_FREE_PAYOUTS", 2),
+    worldIdValidityDays: optionalInt("WORLD_ID_VALIDITY_DAYS", 7),
   };
 }
 

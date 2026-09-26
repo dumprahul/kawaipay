@@ -18,6 +18,7 @@ function config(overrides: Partial<CycleConfig> = {}): CycleConfig {
     usdcType: "0x2::sui::SUI",
     logSecret: "test-log-secret",
     gasBudgetPerItem: 50_000_000,
+    worldId: { freePayouts: 2, validityDays: 7 },
     ...overrides,
   };
 }

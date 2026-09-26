@@ -15,6 +15,7 @@
     "@kawaipay/shared": "workspace:*",
     "@fastify/cors": "^9.0.1",
     "@mysten/sui": "^2.33.1",
+    "@worldcoin/idkit-server": "^1.1.1",
     "fastify": "^4.28.0",
     "ioredis": "^5.4.0",
     "pg": "^8.13.0",

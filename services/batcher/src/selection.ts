@@ -5,6 +5,7 @@ import { buildTickLogRecord, type BucketedStats, type IpClass, type Verdict } fr
 export interface CandidateLink {
   linkId: string;
   campaignId: string;
+  creator: string;
   budgetRemaining: number;
   nextSeq: number;
   maxRatePerSecond: number;
@@ -17,7 +18,7 @@ export interface CandidateLink {
  */
 export async function selectEligibleLinks(pg: Pool, limit: number): Promise<CandidateLink[]> {
   const { rows } = await pg.query(
-    `SELECT l.link_id, l.campaign_id, l.budget_remaining, l.next_seq, c.max_rate_per_second, c.per_settle_cap,
+    `SELECT l.link_id, l.campaign_id, l.creator, l.budget_remaining, l.next_seq, c.max_rate_per_second, c.per_settle_cap,
             MIN(t.received_at) AS oldest_pending_at
      FROM links l
      JOIN campaigns c ON c.campaign_id = l.campaign_id
@@ -26,7 +27,7 @@ export async function selectEligibleLinks(pg: Pool, limit: number): Promise<Cand
        AND NOT EXISTS (
          SELECT 1 FROM batch_items bi WHERE bi.link_id = l.link_id AND bi.status IN ('building', 'submitted')
        )
-     GROUP BY l.link_id, l.campaign_id, l.budget_remaining, l.next_seq, c.max_rate_per_second, c.per_settle_cap
+     GROUP BY l.link_id, l.campaign_id, l.creator, l.budget_remaining, l.next_seq, c.max_rate_per_second, c.per_settle_cap
      ORDER BY oldest_pending_at ASC
      LIMIT $1`,
     [limit],
@@ -34,6 +35,7 @@ export async function selectEligibleLinks(pg: Pool, limit: number): Promise<Cand
   return rows.map((r) => ({
     linkId: r.link_id,
     campaignId: r.campaign_id,
+    creator: r.creator,
     budgetRemaining: Number(r.budget_remaining),
     nextSeq: Number(r.next_seq),
     maxRatePerSecond: Number(r.max_rate_per_second),

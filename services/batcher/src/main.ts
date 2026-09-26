@@ -73,6 +73,7 @@ export async function runBatcherService(): Promise<void> {
           usdcType: config.usdcType,
           logSecret: LOG_SECRET,
           gasBudgetPerItem: 50_000_000,
+          worldId: { freePayouts: config.worldIdFreePayouts, validityDays: config.worldIdValidityDays },
         },
       );
       log("cycle complete", { outcome });
@@ -86,7 +87,13 @@ export async function runBatcherService(): Promise<void> {
         metrics.itemsFailedTotal.inc(undefined, outcome.failedCount);
       }
       for (const alert of outcome.alerts) {
-        emitAlert("batcher", "warning", alert.reason, `link ${alert.linkId} alerted during batch reservation`, {
+        const message =
+          alert.reason === "WORLD_ID_REQUIRED"
+            ? `link ${alert.linkId}'s creator has used their free payouts and needs to verify with World ID before more go out`
+            : alert.reason === "WORLD_ID_EXPIRED"
+              ? `link ${alert.linkId}'s creator's World ID verification has expired (weekly re-verification required) — payout held`
+              : `link ${alert.linkId} alerted during batch reservation`;
+        emitAlert("batcher", "warning", alert.reason, message, {
           linkId: alert.linkId,
           detail: alert.detail,
         });

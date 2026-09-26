@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import WorldIdVerification from "@/components/WorldIdVerification";
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 
@@ -145,6 +146,8 @@ export default function CreatorDashboard({ address, onLogout }: { address: strin
             </button>
           </div>
         </div>
+
+        <WorldIdVerification address={address} />
 
         {/* ── Tabs ── */}
         <div className="flex items-center gap-1 mb-8 bg-[var(--ivory)] border border-[var(--sand)] rounded-xl p-1 w-fit">

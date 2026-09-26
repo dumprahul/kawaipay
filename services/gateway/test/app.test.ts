@@ -31,7 +31,16 @@ const VALID_STATS = {
 beforeAll(async () => {
   pg = await createTestDatabase("kawaipay_gw_app_test");
   redis = createTestRedis();
-  app = buildApp({ pg, redis, minLinkBudget: 10_000, tickMs: 5000, sessionTtlMs: 15_000, ipHashSalt: "app-test-salt" });
+  app = buildApp({
+    pg,
+    redis,
+    minLinkBudget: 10_000,
+    tickMs: 5000,
+    sessionTtlMs: 15_000,
+    ipHashSalt: "app-test-salt",
+    worldId: null,
+    worldIdFreePayouts: 2,
+  });
 }, 30_000);
 
 beforeEach(async () => {
