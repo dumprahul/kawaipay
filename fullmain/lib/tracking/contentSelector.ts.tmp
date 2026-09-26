@@ -1,0 +1,3 @@
+// Vendored from packages/sdk/src/contentSelector.ts (kawaipay backend monorepo) — kept identical
+// so it stays byte-for-byte compatible with the gateway's MAC/heartbeat protocol.
+

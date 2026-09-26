@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+:root {
+  --cream: #F7F3ED;
+  --ivory: #F0EBE3;
+  --sand: #E8E3DC;
+  --beige: #D8D0C6;
+  --brown: #8b6f5c;
+  --muted-brown: #888880;
+  --espresso: #1a1a1a;
+  --accent-green: #5a7a5a;
+  --accent-green-light: #7a9a7a;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background-color: var(--cream);
+  color: var(--espresso);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+}
