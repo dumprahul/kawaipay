@@ -7,7 +7,7 @@ function HeroVisual() {
       <div className="rounded-3xl overflow-hidden border border-[#E0DAD2] shadow-xl bg-white">
         <div className="relative" style={{ height: 380 }}>
           <img
-            src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80"
+            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80"
             alt="Products"
             className="w-full h-full object-cover"
           />
@@ -15,7 +15,7 @@ function HeroVisual() {
         {/* Bottom product row inside card */}
         <div className="px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="text-[13px] font-semibold text-[#1a1a1a]">Solace Wireless Headphones</p>
+            <p className="text-[13px] font-semibold text-[#1a1a1a]">Minimal Linen Collection</p>
             <p className="text-[11px] text-[#888] mt-0.5">Creator reward</p>
           </div>
           <span className="text-[15px] font-bold text-[#1a1a1a]">$189</span>
