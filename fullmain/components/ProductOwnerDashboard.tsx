@@ -7,7 +7,7 @@ import ProductCard from "@/components/ProductCard";
 import { getProductsBySeller } from "@/lib/productStore";
 import { CATEGORIES, type Product } from "@/lib/products";
 import { loadZkLoginSession, buildZkLoginPersonalMessageSignature } from "@/lib/zklogin";
-import { createCampaignOnChain, InsufficientFundsError } from "@/lib/chainTransactions";
+import { createCampaignOnChain, fundLinkOnChain, InsufficientFundsError } from "@/lib/chainTransactions";
 import { setCampaignMetadata, waitForCampaign, listCampaignLinks, type CampaignLinkSummary } from "@/lib/api";
 import { campaignMetadataSigningMessage } from "@/lib/campaignMetadataMessage";
 
@@ -233,10 +233,13 @@ interface ProductAnalytics {
 
 export function AnalyticsTab({ products }: { products: Product[] }) {
   const [rows, setRows] = useState<ProductAnalytics[] | null>(null);
+  const [fundingLinkId, setFundingLinkId] = useState<string | null>(null);
+  const [fundAmount, setFundAmount] = useState("");
+  const [funding, setFunding] = useState(false);
+  const [fundError, setFundError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all(
+  async function refreshLinks() {
+    const r = await Promise.all(
       products.map(async (product) => {
         const links = await listCampaignLinks(product.id);
         const earnedTotal = links.reduce((sum, l) => sum + l.earnedTotal, 0);
@@ -244,11 +247,42 @@ export function AnalyticsTab({ products }: { products: Product[] }) {
         const budgetRemaining = links.reduce((sum, l) => sum + l.budgetRemaining, 0);
         return { product, links, earnedTotal, settledTotal, budgetRemaining };
       }),
-    ).then((r) => !cancelled && setRows(r));
+    );
+    setRows(r);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    refreshLinks().then(() => {
+      if (cancelled) setRows(null);
+    });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products]);
+
+  async function handleFund(campaignId: string, linkId: string) {
+    const amountUsd = Number(fundAmount);
+    if (!amountUsd || amountUsd <= 0) {
+      setFundError("Enter a valid amount");
+      return;
+    }
+    setFunding(true);
+    setFundError(null);
+    try {
+      const session = await loadZkLoginSession();
+      if (!session) throw new Error("Your session expired — please sign in again.");
+      await fundLinkOnChain(session, { campaignId, linkId, amountBaseUnits: Math.round(amountUsd * USDC_DECIMALS) });
+      setFundingLinkId(null);
+      setFundAmount("");
+      await refreshLinks();
+    } catch (err) {
+      setFundError(err instanceof Error ? err.message : "Failed to fund link");
+    } finally {
+      setFunding(false);
+    }
+  }
 
   if (rows === null) return <p className="text-sm text-[var(--muted-brown)] py-10 text-center">Loading real settlement data…</p>;
 
@@ -303,6 +337,75 @@ export function AnalyticsTab({ products }: { products: Product[] }) {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="bg-white border border-[var(--sand)] rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-[var(--sand)]">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--muted-brown)]">Fund Creator Links</p>
+          <p className="text-xs text-[var(--muted-brown)] mt-1">
+            A link starts with zero budget until you fund it from this product&apos;s escrow — no payout can settle until you do.
+          </p>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[var(--sand)]">
+              {["Product", "Creator", "Link Budget", "Action"].map((h) => (
+                <th key={h} className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-[var(--muted-brown)]">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.flatMap((r) => r.links).length === 0 ? (
+              <tr><td colSpan={4} className="px-5 py-8 text-center text-[13px] text-[var(--muted-brown)]">No creator links yet.</td></tr>
+            ) : (
+              rows.flatMap((r) =>
+                r.links.map((link, i) => (
+                  <tr key={link.linkId} className={`border-b border-[var(--sand)] last:border-0 ${i % 2 === 0 ? "" : "bg-[var(--cream)]/30"}`}>
+                    <td className="px-5 py-4 text-[13px] font-medium text-[var(--espresso)]">{r.product.name}</td>
+                    <td className="px-5 py-4 text-[12px] font-mono text-[var(--muted-brown)]">{link.creator.slice(0, 8)}…{link.creator.slice(-6)}</td>
+                    <td className="px-5 py-4 text-[13px] font-mono text-[var(--muted-brown)]">{(link.budgetRemaining / USDC_DECIMALS).toFixed(4)} USDC</td>
+                    <td className="px-5 py-4">
+                      {fundingLinkId === link.linkId ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number" min="0" step="0.01" autoFocus
+                            value={fundAmount}
+                            onChange={(e) => setFundAmount(e.target.value)}
+                            placeholder="USDC"
+                            className="w-20 px-2 py-1.5 rounded-lg border border-[var(--sand)] text-xs bg-[var(--ivory)] text-[var(--espresso)] outline-none focus:border-[var(--brown)]"
+                          />
+                          <button
+                            onClick={() => handleFund(r.product.id, link.linkId)}
+                            disabled={funding}
+                            className="px-3 py-1.5 rounded-lg bg-[var(--espresso)] text-white text-xs font-medium hover:bg-[var(--brown)] transition-colors disabled:opacity-60"
+                          >
+                            {funding ? "…" : "Confirm"}
+                          </button>
+                          <button
+                            onClick={() => { setFundingLinkId(null); setFundError(null); }}
+                            className="text-xs text-[var(--muted-brown)] hover:text-[var(--espresso)]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setFundingLinkId(link.linkId); setFundAmount(""); setFundError(null); }}
+                          className="px-3.5 py-1.5 rounded-lg border border-[var(--sand)] bg-[var(--ivory)] text-xs font-medium text-[var(--espresso)] hover:border-[var(--brown)] transition-colors"
+                        >
+                          Fund
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )),
+              )
+            )}
+          </tbody>
+        </table>
+        {fundError && (
+          <div className="px-5 py-3 border-t border-[var(--sand)] bg-red-50 text-xs text-red-600">{fundError}</div>
+        )}
       </div>
     </div>
   );

@@ -139,6 +139,69 @@ export async function createLinkOnChain(session: ZkLoginSession, campaignId: str
   return { digest: executed.digest, linkId };
 }
 
+/**
+ * Finds the seller's own CampaignCap object for a given campaign, by decoding
+ * CampaignCap's BCS content ({ id: UID (32 bytes), campaign_id: ID (32 bytes) }) rather
+ * than persisting the cap's object ID anywhere — it's always derivable from the chain,
+ * and the seller's wallet already holds it (transferred to them at campaign::create).
+ */
+export async function findCampaignCap(ownerAddress: string, campaignId: string): Promise<string | null> {
+  const { objects } = await suiClient.core.listOwnedObjects({
+    owner: ownerAddress,
+    type: `${PACKAGE_ID}::campaign::CampaignCap`,
+    include: { content: true },
+  });
+  for (const obj of objects) {
+    if (!obj.content) continue;
+    const thisCapsCampaignId = "0x" + Buffer.from(obj.content.slice(32, 64)).toString("hex");
+    if (thisCapsCampaignId === campaignId) return obj.objectId;
+  }
+  return null;
+}
+
+export interface FundLinkResult {
+  digest: string;
+}
+
+/**
+ * Real on-chain link::fund — moves USDC from the campaign's shared escrow into one
+ * specific link's own budget, which is what payout::settle actually checks (E_BUDGET).
+ * A freshly created link starts at zero budget; this is the step that makes it payable.
+ * Requires the seller's own CampaignCap — only the campaign owner can allocate escrow.
+ */
+export async function fundLinkOnChain(
+  session: ZkLoginSession,
+  params: { campaignId: string; linkId: string; amountBaseUnits: number },
+): Promise<FundLinkResult> {
+  const campaignCapId = await findCampaignCap(session.address, params.campaignId);
+  if (!campaignCapId) {
+    throw new Error("Could not find your CampaignCap for this campaign — are you signed in as the seller who created it?");
+  }
+
+  const tx = new Transaction();
+  tx.setSender(session.address);
+  tx.moveCall({
+    target: `${PACKAGE_ID}::link::fund`,
+    typeArguments: [USDC_TYPE],
+    arguments: [tx.object(params.campaignId), tx.object(campaignCapId), tx.object(params.linkId), tx.pure.u64(params.amountBaseUnits)],
+  });
+
+  const bytes = await tx.build({ client: suiClient });
+  const signature = await buildZkLoginSignature(session, bytes);
+  const result = await suiClient.core.executeTransaction({
+    transaction: bytes,
+    signatures: [signature],
+    include: { effects: true },
+  });
+
+  const executed = result.$kind === "Transaction" ? result.Transaction : result.FailedTransaction;
+  if (!executed.status.success) {
+    throw new Error(`link::fund failed on-chain: ${JSON.stringify(executed.status.error)}`);
+  }
+
+  return { digest: executed.digest };
+}
+
 /** Finds the object ID of a newly-created object matching `objectType`, from a transaction's effects + objectTypes map. */
 function findCreatedObjectId(
   executed: { effects?: { changedObjects: { objectId: string; idOperation: string }[] }; objectTypes?: Record<string, string> },
