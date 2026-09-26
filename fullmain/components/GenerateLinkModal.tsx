@@ -21,6 +21,7 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
   const [status, setStatus] = useState<Status>("idle");
   const [copied, setCopied] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+  const [linkId, setLinkId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleGenerate() {
@@ -35,9 +36,10 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
       }
       // Real on-chain link::create, signed by this creator's zkLogin session —
       // permissionless since every campaign created from this app has open_links: true.
-      const { linkId } = await createLinkOnChain(session, product.id);
-      const url = `${window.location.origin}/product/${product.id}?via=${linkId}`;
+      const { linkId: createdLinkId } = await createLinkOnChain(session, product.id);
+      const url = `${window.location.origin}/product/${product.id}?via=${createdLinkId}`;
       setLink(url);
+      setLinkId(createdLinkId);
       setStatus("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate link");
@@ -68,7 +70,7 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
     >
       <div className="absolute inset-0 bg-[var(--espresso)]/40 backdrop-blur-sm" />
 
-      <div className="relative w-full max-w-md bg-[var(--cream)] rounded-2xl shadow-2xl border border-[var(--sand)] overflow-hidden">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[var(--cream)] rounded-2xl shadow-2xl border border-[var(--sand)]">
         <button
           onClick={onClose}
           className="absolute top-5 right-5 z-10 text-[var(--muted-brown)] hover:text-[var(--espresso)] transition-colors"
@@ -79,18 +81,25 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
           </svg>
         </button>
 
-        {/* Product preview */}
-        <div className="px-8 pt-8 pb-5 border-b border-[var(--sand)] flex items-center gap-4">
+        {/* Full product detail preview — a creator sees exactly what they're about to
+            promote before generating anything. This view has no Add to cart / Buy now —
+            that only exists on the real product page, reached through the generated link. */}
+        <div className="px-8 pt-8 pb-6 border-b border-[var(--sand)] space-y-4">
           <img
             src={product.images[0]}
             alt={product.name}
-            className="w-16 h-16 rounded-xl object-cover border border-[var(--sand)] shrink-0"
+            className="w-full h-48 rounded-xl object-cover border border-[var(--sand)]"
           />
-          <div className="min-w-0">
+          <div>
             <p className="text-[10px] uppercase tracking-widest text-[var(--muted-brown)] font-medium">{product.category}</p>
-            <h2 className="text-base font-semibold text-[var(--espresso)] tracking-tight truncate">{product.name}</h2>
-            <p className="text-sm text-[var(--muted-brown)]">${product.price}</p>
+            <h2 className="text-lg font-semibold text-[var(--espresso)] tracking-tight">{product.name}</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-sm font-bold text-[var(--espresso)]">${product.price}</span>
+              <span className="text-xs text-[var(--muted-brown)]">·</span>
+              <span className="text-xs text-[var(--muted-brown)]">{product.rating} ({product.reviewCount} reviews)</span>
+            </div>
           </div>
+          <p className="text-xs text-[var(--muted-brown)] leading-relaxed">{product.description}</p>
         </div>
 
         <div className="px-8 py-6 space-y-6">
@@ -167,6 +176,20 @@ export default function GenerateLinkModal({ product, onClose }: GenerateLinkModa
               <div className="bg-white border border-[var(--sand)] rounded-xl px-4 py-3 text-[12px] font-mono text-[var(--brown)] break-all">
                 {link}
               </div>
+
+              {linkId && (
+                <a
+                  href={`https://suiscan.xyz/testnet/object/${linkId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--muted-brown)] hover:text-[var(--espresso)] transition-colors"
+                >
+                  View this link's on-chain object on Suiscan
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <button
