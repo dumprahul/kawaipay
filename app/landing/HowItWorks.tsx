@@ -3,82 +3,67 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import BlurText from "@/components/ui/BlurText";
+import Carousel from "@/components/ui/Carousel";
+import type { CarouselItem } from "@/components/ui/Carousel";
 
-const STEPS = [
+const STEPS: CarouselItem[] = [
   {
-    num: "01",
+    id: 1,
     title: "Discover",
-    body: "A shopper opens a shared product link from a creator they trust.",
+    description: "A shopper opens a shared product link from a creator they trust.",
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="#8b6f5c" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
+      </svg>
+    ),
   },
   {
-    num: "02",
+    id: 2,
     title: "Engage",
-    body: "Real interaction — reading, scrolling, watching — creates measurable attention signals.",
+    description: "Real interaction — reading, scrolling, watching — creates measurable attention signals.",
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="#8b6f5c" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    ),
   },
   {
-    num: "03",
+    id: 3,
     title: "Verify",
-    body: "Behavioral signals separate genuine humans from bots and bounces instantly.",
+    description: "Behavioral signals separate genuine humans from bots and bounces instantly.",
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="#8b6f5c" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    ),
   },
   {
-    num: "04",
+    id: 4,
     title: "Reward",
-    body: "Every 5s of verified attention triggers a micro-reward drawn from the product's escrow.",
+    description: "Every 5s of verified attention triggers a micro-reward drawn from the product's escrow.",
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="#8b6f5c" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
   },
   {
-    num: "05",
+    id: 5,
     title: "Settle",
-    body: "Rewards land in your wallet on Sui instantly — no wait, no platform cut.",
+    description: "Rewards land in your wallet on Sui instantly — no wait, no platform cut.",
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="#8b6f5c" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
   },
 ];
-
-function StepCard({ step, index }: { step: typeof STEPS[0]; index: number }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 32 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-      className="group relative bg-white border border-[#E8E3DC] rounded-2xl p-6 overflow-hidden
-                 hover:-translate-y-1 hover:shadow-[0_12px_36px_-8px_rgba(139,111,92,0.15)]
-                 hover:border-[#c9b8a8] transition-all duration-300"
-    >
-      {/* Large watermark number */}
-      <span
-        className="absolute -right-2 -bottom-4 text-[88px] font-black leading-none select-none pointer-events-none transition-opacity duration-300 opacity-[0.04] group-hover:opacity-[0.07]"
-        style={{ color: "#8b6f5c" }}
-      >
-        {step.num}
-      </span>
-
-      {/* Step pill */}
-      <span className="inline-block text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full border bg-[#8b6f5c14] text-[#8b6f5c] border-[#8b6f5c30] mb-4">
-        Step {step.num}
-      </span>
-
-      <h3 className="text-[17px] font-bold text-[#1a1a1a] mb-2 tracking-tight">{step.title}</h3>
-      <p className="text-[13px] text-[#888] leading-relaxed">{step.body}</p>
-
-      {/* Connector arrow — hidden on last card */}
-      {index < STEPS.length - 1 && (
-        <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-10
-                        w-7 h-7 rounded-full bg-white border border-[#E8E3DC] items-center justify-center
-                        group-hover:border-[#c9b8a8] transition-colors duration-300">
-          <svg className="w-3 h-3 text-[#8b6f5c]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      )}
-    </motion.div>
-  );
-}
 
 export default function HowItWorks() {
   const headRef = useRef(null);
   const inView = useInView(headRef, { once: true, margin: "-60px" });
+  const carouselRef = useRef(null);
+  const carouselInView = useInView(carouselRef, { once: true, margin: "-40px" });
 
   return (
     <section id="how-it-works" className="max-w-7xl mx-auto px-6 py-20 border-t border-[#E8E3DC]">
@@ -103,19 +88,24 @@ export default function HowItWorks() {
         </div>
       </div>
 
-      {/* Desktop: 5-column grid */}
-      <div className="hidden md:grid md:grid-cols-5 gap-4">
-        {STEPS.map((step, i) => (
-          <StepCard key={step.num} step={step} index={i} />
-        ))}
-      </div>
-
-      {/* Mobile: vertical stack */}
-      <div className="flex flex-col gap-3 md:hidden">
-        {STEPS.map((step, i) => (
-          <StepCard key={step.num} step={step} index={i} />
-        ))}
-      </div>
+      {/* Carousel — wide container, 3 cards visible */}
+      <motion.div
+        ref={carouselRef}
+        initial={{ opacity: 0, y: 32 }}
+        animate={carouselInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+        className="flex justify-center"
+      >
+        <Carousel
+          items={STEPS}
+          baseWidth={780}
+          cardWidth={220}
+          autoplay
+          autoplayDelay={2800}
+          pauseOnHover
+          loop
+        />
+      </motion.div>
     </section>
   );
 }

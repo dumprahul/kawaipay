@@ -7,7 +7,7 @@ function HeroVisual() {
       <div className="rounded-3xl overflow-hidden border border-[#E0DAD2] shadow-xl bg-white">
         <div className="relative" style={{ height: 380 }}>
           <img
-            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80"
+            src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80"
             alt="Products"
             className="w-full h-full object-cover"
           />
