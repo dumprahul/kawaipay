@@ -1,0 +1,46 @@
+{
+  "leaves_1": {
+    "records": [
+      "{\"record\":0}"
+    ],
+    "rootHex": "47fbdd832e50baa0a8704857ff41a40b274aa215987a43a148e914492e00eb42"
+  },
+  "leaves_2": {
+    "records": [
+      "{\"record\":0}",
+      "{\"record\":1}"
+    ],
+    "rootHex": "b9f9a05014b0c5c9dd53cb83bae3640ce168e6d01ce2da5cd5da4eb5f95dd3da"
+  },
+  "leaves_3": {
+    "records": [
+      "{\"record\":0}",
+      "{\"record\":1}",
+      "{\"record\":2}"
+    ],
+    "rootHex": "6f357482178ccfc0b608d45d01972bccf158c3ec2c4b812cee16c89825180cc8"
+  },
+  "leaves_5": {
+    "records": [
+      "{\"record\":0}",
+      "{\"record\":1}",
+      "{\"record\":2}",
+      "{\"record\":3}",
+      "{\"record\":4}"
+    ],
+    "rootHex": "edd0e6423f5e685d6971476271e4439f597fc20ec0a4bbe004941ca79c949b27"
+  },
+  "leaves_8": {
+    "records": [
+      "{\"record\":0}",
+      "{\"record\":1}",
+      "{\"record\":2}",
+      "{\"record\":3}",
+      "{\"record\":4}",
+      "{\"record\":5}",
+      "{\"record\":6}",
+      "{\"record\":7}"
+    ],
+    "rootHex": "fad6eee9640531b1d77b1d840bed3ee657b31c5f20c53124edba34a2cb642b86"
+  }
+}

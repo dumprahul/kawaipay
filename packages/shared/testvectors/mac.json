@@ -1,0 +1,25 @@
+{
+  "secretHex": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2",
+  "sessionId": "6f9619ff-8b86-d011-b42d-00cf4fc964ff",
+  "seq": 7,
+  "token": "opaque-token-abc123",
+  "stats": {
+    "windowMs": 5000,
+    "visibleMs": 5000,
+    "focusedMs": 5000,
+    "inViewportMs": 5000,
+    "cvrPct": 80,
+    "scrollEvents": 5,
+    "scrollDepthPct": 40,
+    "scrollSpeedMax": 500,
+    "pointerMoves": 10,
+    "pointerCells": 6,
+    "touchEvents": 0,
+    "keyEvents": 0,
+    "tabSwitches": 0
+  },
+  "canonicalStatsJson": "{\"cvrPct\":80,\"focusedMs\":5000,\"inViewportMs\":5000,\"keyEvents\":0,\"pointerCells\":6,\"pointerMoves\":10,\"scrollDepthPct\":40,\"scrollEvents\":5,\"scrollSpeedMax\":500,\"tabSwitches\":0,\"touchEvents\":0,\"visibleMs\":5000,\"windowMs\":5000}",
+  "statsHash": "ed1872535c90858b439d61ddb8e95731ceb139df7eeab39fcd930e114053e216",
+  "message": "6f9619ff-8b86-d011-b42d-00cf4fc964ff.7.opaque-token-abc123.ed1872535c90858b439d61ddb8e95731ceb139df7eeab39fcd930e114053e216",
+  "mac": "SAX1nUaBNZFQf20qjBRio4sC3ipwUt+PspXQnmlMXbI="
+}
