@@ -12,15 +12,17 @@ const PROBLEMS = [
     subtitle: "The payment problem",
     body: "Commissions sit in escrow for 30–90 days. Cash flow suffers while platforms hold your money.",
     icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
-    // back — stats
     stat1: { value: "67", unit: "days", label: "average payout delay" },
     stat2: { value: "$2.8B", unit: "", label: "held in affiliate escrow globally" },
     stat3: { value: "41%", unit: "", label: "of creators quit due to late pay" },
-    backAccent: "#8b6f5c",
-    backGrad: "from-[#2a1f18] via-[#1e1710] to-[#120f0a]",
-    frontGrad: "from-[#1a1714] via-[#221c18] to-[#2a2420]",
-    accentLight: "#c9a882",
-    tagColor: "bg-[#8b6f5c22] text-[#c9a882] border-[#8b6f5c44]",
+    accent: "#8b6f5c",
+    frontBg: "from-[#fdf9f6] to-[#f5ede6]",
+    backBg: "from-[#faf4ef] to-[#f0e6dc]",
+    topBar: "from-[#c9b8a8] to-[#e8d8cc]",
+    tagColor: "bg-[#8b6f5c14] text-[#8b6f5c] border-[#8b6f5c30]",
+    statBg: "bg-[#8b6f5c0d] border-[#8b6f5c25]",
+    iconBg: "bg-[#8b6f5c12]",
+    numColor: "#8b6f5c",
   },
   {
     num: "02",
@@ -31,11 +33,14 @@ const PROBLEMS = [
     stat1: { value: "2.3%", unit: "", label: "industry avg click conversion" },
     stat2: { value: "78%", unit: "", label: "of paid clicks bounce in < 10s" },
     stat3: { value: "$500M+", unit: "", label: "wasted on bot traffic yearly" },
-    backAccent: "#5a7a5a",
-    backGrad: "from-[#101a10] via-[#0e160e] to-[#0a110a]",
-    frontGrad: "from-[#111a11] via-[#161e16] to-[#1a221a]",
-    accentLight: "#8dbb8d",
-    tagColor: "bg-[#5a7a5a22] text-[#8dbb8d] border-[#5a7a5a44]",
+    accent: "#4a7a4a",
+    frontBg: "from-[#f5faf5] to-[#e8f2e8]",
+    backBg: "from-[#f0f8f0] to-[#e2efe2]",
+    topBar: "from-[#a8c9a8] to-[#cce4cc]",
+    tagColor: "bg-[#4a7a4a14] text-[#4a7a4a] border-[#4a7a4a30]",
+    statBg: "bg-[#4a7a4a0d] border-[#4a7a4a25]",
+    iconBg: "bg-[#4a7a4a12]",
+    numColor: "#4a7a4a",
   },
   {
     num: "03",
@@ -46,11 +51,14 @@ const PROBLEMS = [
     stat1: { value: "0¢", unit: "", label: "paid for 8 min of real attention" },
     stat2: { value: "4.2×", unit: "", label: "higher purchase intent after 5+ min" },
     stat3: { value: "92%", unit: "", label: "of attention data is never captured" },
-    backAccent: "#7a5a9a",
-    backGrad: "from-[#16101f] via-[#110d18] to-[#0d0a12]",
-    frontGrad: "from-[#141018] via-[#18141e] to-[#1c1824]",
-    accentLight: "#b09ad8",
-    tagColor: "bg-[#7a5a9a22] text-[#b09ad8] border-[#7a5a9a44]",
+    accent: "#6a4a9a",
+    frontBg: "from-[#faf8fd] to-[#f0eaf8]",
+    backBg: "from-[#f5f0fb] to-[#ece4f5]",
+    topBar: "from-[#b8a8d8] to-[#d8cce8]",
+    tagColor: "bg-[#6a4a9a14] text-[#6a4a9a] border-[#6a4a9a30]",
+    statBg: "bg-[#6a4a9a0d] border-[#6a4a9a25]",
+    iconBg: "bg-[#6a4a9a12]",
+    numColor: "#6a4a9a",
   },
 ];
 
@@ -58,38 +66,43 @@ type Problem = typeof PROBLEMS[0];
 
 function FrontFace({ p }: { p: Problem }) {
   return (
-    <div className={`w-full h-full bg-gradient-to-br ${p.frontGrad} flex flex-col p-7 relative overflow-hidden`}>
-      {/* Top-right large number */}
-      <span className="absolute top-4 right-5 text-[88px] font-black leading-none select-none pointer-events-none"
-        style={{ color: p.backAccent, opacity: 0.12 }}>
-        {p.num}
-      </span>
+    <div className={`w-full h-full bg-gradient-to-br ${p.frontBg} flex flex-col overflow-hidden relative`}>
+      {/* Coloured top bar */}
+      <div className={`h-1 w-full bg-gradient-to-r ${p.topBar} shrink-0`} />
 
-      {/* Tag */}
-      <span className={`self-start text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full border ${p.tagColor} mb-auto`}>
-        {p.subtitle}
-      </span>
+      <div className="flex flex-col p-7 flex-1 relative">
+        {/* Watermark number */}
+        <span className="absolute -right-2 -bottom-3 text-[96px] font-black leading-none select-none pointer-events-none"
+          style={{ color: p.accent, opacity: 0.06 }}>
+          {p.num}
+        </span>
 
-      {/* Icon */}
-      <div className="mt-auto mb-5">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
-          style={{ background: `${p.backAccent}22`, border: `1px solid ${p.backAccent}44` }}>
-          <svg className="w-6 h-6" fill="none" stroke={p.accentLight} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={p.icon} />
-          </svg>
+        {/* Tag */}
+        <span className={`self-start text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full border ${p.tagColor} mb-auto`}>
+          {p.subtitle}
+        </span>
+
+        {/* Icon */}
+        <div className="mt-auto mb-5">
+          <div className={`w-12 h-12 rounded-2xl ${p.iconBg} flex items-center justify-center mb-5`}
+            style={{ border: `1px solid ${p.accent}25` }}>
+            <svg className="w-6 h-6" fill="none" stroke={p.accent} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={p.icon} />
+            </svg>
+          </div>
+
+          <h3 className="text-[22px] font-bold text-[#1a1a1a] leading-snug tracking-tight mb-2">{p.title}</h3>
+          <p className="text-[13px] text-[#666] leading-relaxed">{p.body}</p>
         </div>
 
-        <h3 className="text-[22px] font-bold text-white leading-snug tracking-tight mb-2">{p.title}</h3>
-        <p className="text-[13px] leading-relaxed" style={{ color: "#ffffff88" }}>{p.body}</p>
-      </div>
-
-      {/* Flip hint */}
-      <div className="flex items-center gap-1.5 mt-5" style={{ color: p.accentLight, opacity: 0.7 }}>
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        <span className="text-[10px] font-semibold uppercase tracking-widest">See the stats</span>
+        {/* Flip hint */}
+        <div className="flex items-center gap-1.5 mt-5" style={{ color: p.accent }}>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span className="text-[10px] font-semibold uppercase tracking-widest opacity-70">See the stats</span>
+        </div>
       </div>
     </div>
   );
@@ -97,41 +110,45 @@ function FrontFace({ p }: { p: Problem }) {
 
 function BackFace({ p }: { p: Problem }) {
   return (
-    <div className={`w-full h-full bg-gradient-to-br ${p.backGrad} flex flex-col p-7 relative overflow-hidden`}>
+    <div className={`w-full h-full bg-gradient-to-br ${p.backBg} flex flex-col overflow-hidden relative`}>
+      {/* Coloured top bar */}
+      <div className={`h-1 w-full bg-gradient-to-r ${p.topBar} shrink-0`} />
+
       {/* Decorative circle */}
-      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-10"
-        style={{ background: `radial-gradient(circle, ${p.backAccent}, transparent)` }} />
+      <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${p.accent}18, transparent)` }} />
 
-      <div className="flex items-center justify-between mb-6">
-        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: p.accentLight }}>
-          By the numbers
-        </span>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${p.tagColor}`}>{p.num}</span>
-      </div>
+      <div className="flex flex-col p-7 flex-1">
+        <div className="flex items-center justify-between mb-5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: p.accent }}>
+            By the numbers
+          </span>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${p.tagColor}`}>{p.num}</span>
+        </div>
 
-      {/* Stats */}
-      <div className="flex flex-col gap-4 flex-1">
-        {[p.stat1, p.stat2, p.stat3].map((s, i) => (
-          <div key={i} className="rounded-xl p-4 relative overflow-hidden"
-            style={{ background: `${p.backAccent}14`, border: `1px solid ${p.backAccent}30` }}>
-            <div className="flex items-baseline gap-1.5 mb-1">
-              <span className="text-[28px] font-black tracking-tight leading-none" style={{ color: p.accentLight }}>
-                {s.value}
-              </span>
-              {s.unit && <span className="text-[13px] font-semibold" style={{ color: p.accentLight }}>{s.unit}</span>}
+        {/* Stats */}
+        <div className="flex flex-col gap-3 flex-1">
+          {[p.stat1, p.stat2, p.stat3].map((s, i) => (
+            <div key={i} className={`rounded-xl p-4 ${p.statBg} border`}>
+              <div className="flex items-baseline gap-1 mb-0.5">
+                <span className="text-[26px] font-black tracking-tight leading-none" style={{ color: p.accent }}>
+                  {s.value}
+                </span>
+                {s.unit && <span className="text-[13px] font-semibold" style={{ color: p.accent }}>{s.unit}</span>}
+              </div>
+              <p className="text-[11px] text-[#777] leading-snug">{s.label}</p>
             </div>
-            <p className="text-[11px] leading-snug" style={{ color: "#ffffff66" }}>{s.label}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Flip back hint */}
-      <div className="flex items-center gap-1.5 mt-5" style={{ color: p.accentLight, opacity: 0.6 }}>
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        <span className="text-[10px] font-semibold uppercase tracking-widest">Flip back</span>
+        {/* Flip back hint */}
+        <div className="flex items-center gap-1.5 mt-4" style={{ color: p.accent }}>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span className="text-[10px] font-semibold uppercase tracking-widest opacity-70">Flip back</span>
+        </div>
       </div>
     </div>
   );
