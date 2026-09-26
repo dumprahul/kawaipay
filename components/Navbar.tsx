@@ -29,15 +29,15 @@ export default function Navbar() {
   return (
     <>
       <div className="w-full px-8 pt-6 pb-4 sticky top-0 z-50 bg-[var(--cream)]">
-        <nav className="max-w-7xl mx-auto bg-white border border-[var(--sand)] rounded-2xl shadow-sm px-6 py-3.5 flex items-center justify-between gap-6">
+        <nav className="max-w-7xl mx-auto bg-white border border-[var(--sand)] rounded-2xl shadow-sm px-6 py-3.5 relative flex items-center justify-between gap-6">
 
           {/* Logo */}
           <Link href="/" className="shrink-0 font-semibold text-[15px] tracking-tight text-[var(--espresso)]">
             Kawaii<span className="text-[var(--accent-green)]">Pay</span>
           </Link>
 
-          {/* Center nav */}
-          <div className="hidden md:flex items-center gap-7 text-[13px] text-[#666] font-medium">
+          {/* Center nav — absolutely centred */}
+          <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-7 text-[13px] text-[#666] font-medium">
             <Link href="/shop" className="hover:text-[var(--espresso)] transition-colors">Shop</Link>
             <Link href="/search" className="hover:text-[var(--espresso)] transition-colors">Categories</Link>
             <Link href="/search?q=trending" className="hover:text-[var(--espresso)] transition-colors">Trending</Link>
