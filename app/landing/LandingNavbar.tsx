@@ -17,7 +17,6 @@ export default function LandingNavbar() {
         <div className="hidden md:flex items-center gap-8 text-[13px] text-[#666] font-medium">
           <Link href="/shop" className="hover:text-[#1a1a1a] transition-colors">Shop</Link>
           <a href="#how-it-works" className="hover:text-[#1a1a1a] transition-colors">How It Works</a>
-          <a href="#creators" className="hover:text-[#1a1a1a] transition-colors">For Creators</a>
           <a href="#" className="hover:text-[#1a1a1a] transition-colors">Docs</a>
         </div>
 
@@ -42,7 +41,6 @@ export default function LandingNavbar() {
         <div className="mt-2 max-w-7xl mx-auto bg-white border border-[#E8E3DC] rounded-2xl px-6 py-4 flex flex-col gap-4 text-[13px] text-[#666] md:hidden">
           <Link href="/shop" onClick={() => setMenuOpen(false)}>Shop</Link>
           <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How It Works</a>
-          <a href="#creators" onClick={() => setMenuOpen(false)}>For Creators</a>
           <a href="#">Docs</a>
           <Link href="/shop" className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1a1a1a] text-white w-fit font-semibold">
             Get Started →

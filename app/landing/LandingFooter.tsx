@@ -12,7 +12,6 @@ export default function LandingFooter() {
       <div className="flex items-center gap-7 flex-wrap text-[12px] text-[#999]">
         <Link href="/shop" className="hover:text-[#1a1a1a] transition-colors">Shop</Link>
         <a href="#how-it-works" className="hover:text-[#1a1a1a] transition-colors">How It Works</a>
-        <a href="#creators" className="hover:text-[#1a1a1a] transition-colors">For Creators</a>
         <a href="#" className="hover:text-[#1a1a1a] transition-colors">Docs</a>
         <a href="#" className="hover:text-[#1a1a1a] transition-colors">Privacy</a>
         <a href="#" className="hover:text-[#1a1a1a] transition-colors">Terms</a>

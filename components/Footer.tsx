@@ -17,7 +17,6 @@ export default function Footer() {
         <div className="flex items-center gap-7 flex-wrap text-[12px] text-[#999]">
           <Link href="/shop" className="hover:text-[var(--espresso)] transition-colors">Shop</Link>
           <Link href="/search" className="hover:text-[var(--espresso)] transition-colors">Categories</Link>
-          <Link href="/creator" className="hover:text-[var(--espresso)] transition-colors">For Creators</Link>
           <Link href="/search?q=trending" className="hover:text-[var(--espresso)] transition-colors">Trending</Link>
           <span className="text-[#ccc]">|</span>
           <span className="text-[#bbb]">Privacy</span>
