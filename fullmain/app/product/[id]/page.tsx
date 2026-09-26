@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductGallery from "@/components/ProductGallery";
 import ProductInfo from "@/components/ProductInfo";
-import ShareAndEarn from "@/components/ShareAndEarn";
+import GenerateLinkModal from "@/components/GenerateLinkModal";
 import ProductGrid from "@/components/ProductGrid";
 import { getAllProducts, getProductsByCategory } from "@/lib/productStore";
 import type { Product } from "@/lib/products";
@@ -25,6 +25,7 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState<Product | null | undefined>(undefined);
   const [related, setRelated] = useState<Product[]>([]);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +87,14 @@ export default function ProductPage() {
           <ProductGallery product={product} />
           <div className="space-y-8">
             <ProductInfo product={product} />
-            {product.affiliateEligible && <ShareAndEarn product={product} />}
+            {product.affiliateEligible && (
+              <button
+                onClick={() => setLinkModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-[var(--accent-green)]/30 bg-[var(--accent-green)]/5 text-[var(--accent-green)] text-sm font-medium hover:bg-[var(--accent-green)]/10 transition-colors"
+              >
+                ◉ Share &amp; earn from this product
+              </button>
+            )}
           </div>
         </div>
 
@@ -106,6 +114,9 @@ export default function ProductPage() {
         )}
       </main>
       <Footer />
+      {linkModalOpen && (
+        <GenerateLinkModal product={product} onClose={() => setLinkModalOpen(false)} />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Product } from "@/lib/products";
+import GenerateLinkModal from "@/components/GenerateLinkModal";
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -23,9 +24,22 @@ function Stars({ rating }: { rating: number }) {
 
 export default function ProductCard({ product }: { product: Product }) {
   const [wishlisted, setWishlisted] = useState(false);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+
+  function handleClick(e: React.MouseEvent) {
+    // A signed-in creator clicking an affiliate-eligible product goes straight to
+    // generating their link instead of the regular buyer product page — nothing is
+    // "shared" until that succeeds, so this is the only way in for a creator here.
+    if (!product.affiliateEligible) return;
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("kawaii_role") !== "creator") return;
+    e.preventDefault();
+    setLinkModalOpen(true);
+  }
 
   return (
-    <Link href={`/product/${product.id}`} className="group block">
+    <>
+    <Link href={`/product/${product.id}`} className="group block" onClick={handleClick}>
       {/* Image container */}
       <div className="relative rounded-xl overflow-hidden aspect-square mb-3 bg-[var(--ivory)] transition-transform duration-300 group-hover:-translate-y-1">
         <img
@@ -103,5 +117,9 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
       </div>
     </Link>
+    {linkModalOpen && (
+      <GenerateLinkModal product={product} onClose={() => setLinkModalOpen(false)} />
+    )}
+    </>
   );
 }
