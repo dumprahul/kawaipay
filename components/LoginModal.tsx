@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buildOAuthUrl, createEphemeralSession } from "@/lib/zklogin";
+import { buildOAuthUrl, createEphemeralSession, buildBuyerOAuthUrl } from "@/lib/zklogin";
 
 type Role = "buyer" | "creator" | "owner";
 
@@ -52,16 +52,25 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     setLoading(true);
     setError(null);
     try {
-      const session = await createEphemeralSession();
-      // Store role so callback can redirect appropriately
       sessionStorage.setItem("kawaii_role", selectedRole);
-      const url = buildOAuthUrl("google", session.nonce);
-      window.location.href = url;
+
+      if (selectedRole === "buyer") {
+        // Plain Google OAuth — no zkLogin/Sui needed
+        const url = buildBuyerOAuthUrl();
+        window.location.href = url;
+      } else {
+        // Creator / Product Owner — full zkLogin → Sui address
+        const session = await createEphemeralSession();
+        const url = buildOAuthUrl("google", session.nonce);
+        window.location.href = url;
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start login");
       setLoading(false);
     }
   }
+
+  const isBuyer = selectedRole === "buyer";
 
   return (
     <div
@@ -86,7 +95,9 @@ export default function LoginModal({ onClose }: LoginModalProps) {
           </button>
           <h2 className="text-2xl font-bold text-[var(--espresso)] tracking-tight">Welcome to KawaiiPay</h2>
           <p className="mt-1 text-sm text-[var(--muted-brown)]">
-            Powered by zkLogin — no wallet or seed phrase needed
+            {isBuyer
+              ? "Sign in with Google to start shopping"
+              : "Powered by zkLogin — your Sui address, no seed phrase"}
           </p>
         </div>
 
@@ -114,13 +125,18 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                     <p className="text-sm font-semibold">{role.label}</p>
                     <p className="text-xs opacity-70 mt-0.5">{role.description}</p>
                   </div>
-                  {selectedRole === role.id && (
-                    <span className="ml-auto shrink-0">
+                  <div className="ml-auto shrink-0 flex items-center gap-2">
+                    {role.id !== "buyer" && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--sand)] text-[var(--muted-brown)]">
+                        Sui zkLogin
+                      </span>
+                    )}
+                    {selectedRole === role.id && (
                       <svg className="w-4 h-4 text-[var(--espresso)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                    </span>
-                  )}
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -155,8 +171,9 @@ export default function LoginModal({ onClose }: LoginModalProps) {
           )}
 
           <p className="text-center text-[var(--muted-brown)] text-xs leading-relaxed">
-            Your Sui address is derived from your OAuth identity.<br />
-            No personal data is stored on-chain.
+            {isBuyer
+              ? "Your Google account is used only to identify you. No blockchain interaction."
+              : "Your Sui address is derived from your OAuth identity.\nNo personal data is stored on-chain."}
           </p>
         </div>
       </div>

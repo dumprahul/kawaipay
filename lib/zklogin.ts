@@ -231,3 +231,38 @@ export function clearZkLoginSession() {
   sessionStorage.removeItem("zklogin_session");
   sessionStorage.removeItem("zklogin_ephemeral");
 }
+
+// Plain Google OAuth for buyers — no nonce/zkLogin, just email + name
+export function buildBuyerOAuthUrl(): string {
+  const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI!;
+  const params = new URLSearchParams({
+    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+    response_type: "id_token",
+    redirect_uri: redirectUri,
+    scope: "openid email profile",
+    nonce: Math.random().toString(36).slice(2), // throwaway nonce — not used for zkLogin
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
+
+export interface BuyerSession {
+  email: string;
+  name: string;
+  picture?: string;
+  sub: string;
+}
+
+export function saveBuyerSession(session: BuyerSession) {
+  sessionStorage.setItem("buyer_session", JSON.stringify(session));
+}
+
+export function loadBuyerSession(): BuyerSession | null {
+  const raw = sessionStorage.getItem("buyer_session");
+  return raw ? JSON.parse(raw) : null;
+}
+
+export function clearBuyerSession() {
+  sessionStorage.removeItem("buyer_session");
+}
+
+

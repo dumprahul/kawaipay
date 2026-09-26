@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 import {
   restoreEphemeralSession,
   fetchUserSalt,
   deriveAddress,
   fetchZkProof,
   saveZkLoginSession,
+  saveBuyerSession,
 } from "@/lib/zklogin";
 
 type Status =
@@ -33,9 +35,6 @@ export default function CallbackPage() {
   useEffect(() => {
     async function handleCallback() {
       try {
-        // Extract JWT from URL hash or query params depending on provider
-        // Google/Twitch return id_token in the hash fragment (#id_token=...)
-        // Apple returns in query params (form_post)
         const hash = window.location.hash.substring(1);
         const query = window.location.search.substring(1);
         const params = new URLSearchParams(hash || query);
@@ -47,7 +46,23 @@ export default function CallbackPage() {
           );
         }
 
-        // Restore the ephemeral session we stored before redirecting
+        const role = sessionStorage.getItem("kawaii_role");
+
+        if (role === "buyer") {
+          // Buyers: just decode JWT, no Sui/zkLogin needed
+          const decoded = jwtDecode<{ email: string; name: string; picture?: string; sub: string }>(jwt);
+          saveBuyerSession({
+            email: decoded.email,
+            name: decoded.name,
+            picture: decoded.picture,
+            sub: decoded.sub,
+          });
+          setStatus("done");
+          router.push("/dashboard");
+          return;
+        }
+
+        // Creator / Product Owner: full zkLogin → Sui address
         const ephemeral = restoreEphemeralSession();
         if (!ephemeral) {
           throw new Error(
@@ -57,13 +72,11 @@ export default function CallbackPage() {
 
         setStatus("fetching_salt");
         const salt = await fetchUserSalt(jwt);
-
         const address = deriveAddress(jwt, salt);
 
         setStatus("generating_proof");
         const proof = await fetchZkProof(jwt, ephemeral, salt);
 
-        // Save the full session — keypair is stored as secret key string
         saveZkLoginSession({
           proof,
           address,
@@ -85,56 +98,43 @@ export default function CallbackPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-950">
+    <main className="min-h-screen flex items-center justify-center bg-[var(--cream)]">
       <div className="w-full max-w-sm p-8 text-center space-y-4">
         {status !== "error" ? (
           <>
             <svg
-              className="w-10 h-10 animate-spin text-blue-500 mx-auto"
+              className="w-10 h-10 animate-spin text-[var(--accent-green)] mx-auto"
               fill="none"
               viewBox="0 0 24 24"
             >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8z"
-              />
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
             </svg>
-            <p className="text-white font-medium">{statusMessages[status]}</p>
+            <p className="text-[var(--espresso)] font-medium">{statusMessages[status]}</p>
             <div className="flex justify-center gap-1">
-              {(["extracting", "fetching_salt", "generating_proof", "done"] as Status[]).map(
-                (s) => (
-                  <div
-                    key={s}
-                    className={`h-1.5 w-8 rounded-full transition-colors ${
-                      ["extracting", "fetching_salt", "generating_proof", "done"].indexOf(s) <=
-                      ["extracting", "fetching_salt", "generating_proof", "done"].indexOf(status)
-                        ? "bg-blue-500"
-                        : "bg-gray-700"
-                    }`}
-                  />
-                )
-              )}
+              {(["extracting", "fetching_salt", "generating_proof", "done"] as Status[]).map((s) => (
+                <div
+                  key={s}
+                  className={`h-1.5 w-8 rounded-full transition-colors ${
+                    ["extracting", "fetching_salt", "generating_proof", "done"].indexOf(s) <=
+                    ["extracting", "fetching_salt", "generating_proof", "done"].indexOf(status)
+                      ? "bg-[var(--accent-green)]"
+                      : "bg-[var(--sand)]"
+                  }`}
+                />
+              ))}
             </div>
           </>
         ) : (
           <>
-            <div className="text-red-400 text-4xl">✕</div>
-            <p className="text-white font-medium">Login failed</p>
-            <p className="text-red-400 text-sm bg-red-950 border border-red-800 rounded-lg px-4 py-3">
+            <div className="text-[var(--brown)] text-4xl">✕</div>
+            <p className="text-[var(--espresso)] font-medium">Login failed</p>
+            <p className="text-[var(--brown)] text-sm bg-[var(--ivory)] border border-[var(--sand)] rounded-lg px-4 py-3">
               {error}
             </p>
             <button
-              onClick={() => router.push("/login")}
-              className="mt-4 px-6 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors"
+              onClick={() => router.push("/shop")}
+              className="mt-4 px-6 py-2 bg-[var(--espresso)] hover:bg-[var(--brown)] text-white rounded-xl text-sm transition-colors"
             >
               Try again
             </button>
