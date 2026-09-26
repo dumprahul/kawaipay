@@ -14,7 +14,15 @@ CREATE TABLE campaigns (
   per_link_epoch_cap bigint NOT NULL,
   active boolean NOT NULL,
   open_links boolean NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  -- Display-only product metadata (title/category/description/image), set by the seller
+  -- via a signed PUT after the on-chain campaign::create call. None of this affects
+  -- scoring, payout, or trust — it never touches the Move contract, only Postgres —
+  -- so it's nullable until the seller sets it and freely editable without a new tx.
+  title text,
+  category text,
+  description text,
+  image_url text
 );
 
 CREATE TABLE links (

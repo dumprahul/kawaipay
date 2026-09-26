@@ -5,6 +5,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Local env files (real secrets go here, never committed)
+.env
+.env.*
+!.env.example
+
 # Move build output
 contracts/build/
 
