@@ -85,7 +85,7 @@ export default function LandingHero() {
           </p>
           <div className="flex items-center gap-6">
             <Link
-              href="/shop"
+              href="/login"
               className="inline-flex items-center gap-2 px-7 py-4 rounded-xl bg-[#1a1a1a] text-white text-[14px] font-semibold shadow-sm hover:bg-[#333] hover:-translate-y-px transition-all"
             >
               Get Started

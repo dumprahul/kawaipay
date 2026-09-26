@@ -22,7 +22,7 @@ export default function LandingNavbar() {
         </div>
 
         <Link
-          href="/shop"
+          href="/login"
           className="hidden md:flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1a1a1a] text-white text-[13px] font-semibold hover:bg-[#333] transition-colors"
         >
           Get Started
@@ -44,7 +44,7 @@ export default function LandingNavbar() {
           <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How It Works</a>
           <a href="#creators" onClick={() => setMenuOpen(false)}>For Creators</a>
           <a href="#">Docs</a>
-          <Link href="/shop" className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1a1a1a] text-white w-fit font-semibold">
+          <Link href="/login" className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1a1a1a] text-white w-fit font-semibold">
             Get Started →
           </Link>
         </div>
