@@ -1,7 +1,8 @@
-import { createPgPool, MetricsRegistry, startMetricsServer } from "@kawaipay/shared";
+import { createPgPool, loadEnv, MetricsRegistry, startMetricsServer } from "@kawaipay/shared";
 import { loadConfig } from "./config.js";
 import { registerSentinelMetrics, runSentinelCycle } from "./sentinel.js";
 
+loadEnv();
 const config = loadConfig();
 const pg = createPgPool(config.databaseUrl);
 const registry = new MetricsRegistry();

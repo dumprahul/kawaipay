@@ -14,7 +14,7 @@ beforeAll(async () => {
 }, 30_000);
 
 beforeEach(async () => {
-  await pg.query("TRUNCATE indexer_heartbeat, indexer_cursor, campaigns CASCADE");
+  await pg.query("TRUNCATE indexer_heartbeat, indexer_cursor, campaigns, links CASCADE");
 });
 
 afterAll(async () => {
@@ -76,5 +76,26 @@ describe("runModuleLoop", () => {
     const rendered = registry.render();
     expect(rendered).toContain('indexer_polls_total{module="campaign"} 1');
     expect(rendered).toContain('indexer_events_processed_total{module="campaign"} 1');
+  }, 15_000);
+
+  it("survives a poll that fails (e.g. a cross-module ordering race) instead of throwing, and retries the same page", async () => {
+    // Real scenario hit live: LinkCreated referencing a campaign_id whose own
+    // CampaignCreated hasn't been applied yet by the (independently-polling) campaign
+    // module — a foreign-key violation, not corrupt data. The loop must log and retry,
+    // never propagate and kill the whole indexer process.
+    const source = new FakeEventSource();
+    source.setEvents("link", [ev("LinkCreated", "link", "tx-1", 0, { link_id: "0xlink", campaign_id: "0xno-such-campaign", creator: "0xcreator" })]);
+
+    const messages: string[] = [];
+    let ticks = 0;
+    await expect(
+      runModuleLoop(pg, source, "link", () => ticks++ < 2, (msg) => messages.push(msg)),
+    ).resolves.toBeUndefined();
+
+    expect(messages).toContain("module poll failed, will retry");
+    // The failed page's transaction rolled back, so the cursor never advanced and the
+    // link was never partially inserted.
+    const { rows: linkRows } = await pg.query(`SELECT 1 FROM links WHERE link_id = '0xlink'`);
+    expect(linkRows).toHaveLength(0);
   }, 15_000);
 });

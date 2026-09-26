@@ -1,9 +1,10 @@
-import { createPgPool, MetricsRegistry, startMetricsServer } from "@kawaipay/shared";
+import { createPgPool, loadEnv, MetricsRegistry, startMetricsServer } from "@kawaipay/shared";
 import { loadConfig } from "./config.js";
 import { LocalFsStore } from "./logStore.js";
 import { registerLogWriterMetrics } from "./metrics.js";
 import { writePendingLogs } from "./writer.js";
 
+loadEnv();
 const config = loadConfig();
 const pg = createPgPool(config.databaseUrl);
 const logStore = new LocalFsStore(config.logStoreDir);
