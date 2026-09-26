@@ -70,9 +70,9 @@ function FrontFace({ p }: { p: Problem }) {
       {/* Coloured top bar */}
       <div className={`h-1 w-full bg-gradient-to-r ${p.topBar} shrink-0`} />
 
-      <div className="flex flex-col p-7 flex-1 relative">
+      <div className="flex flex-col p-5 flex-1 relative">
         {/* Watermark number */}
-        <span className="absolute -right-2 -bottom-3 text-[96px] font-black leading-none select-none pointer-events-none"
+        <span className="absolute -right-2 -bottom-3 text-[80px] font-black leading-none select-none pointer-events-none"
           style={{ color: p.accent, opacity: 0.06 }}>
           {p.num}
         </span>
@@ -83,13 +83,13 @@ function FrontFace({ p }: { p: Problem }) {
         </span>
 
         {/* Content */}
-        <div className="mt-auto mb-5">
-          <h3 className="text-[22px] font-bold text-[#1a1a1a] leading-snug tracking-tight mb-2">{p.title}</h3>
-          <p className="text-[13px] text-[#666] leading-relaxed">{p.body}</p>
+        <div className="mt-auto mb-3">
+          <h3 className="text-[20px] font-bold text-[#1a1a1a] leading-snug tracking-tight mb-1.5">{p.title}</h3>
+          <p className="text-[12px] text-[#666] leading-relaxed">{p.body}</p>
         </div>
 
         {/* Flip hint */}
-        <div className="flex items-center gap-1.5 mt-5" style={{ color: p.accent }}>
+        <div className="flex items-center gap-1.5 mt-3" style={{ color: p.accent }}>
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -111,8 +111,8 @@ function BackFace({ p }: { p: Problem }) {
       <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full pointer-events-none"
         style={{ background: `radial-gradient(circle, ${p.accent}18, transparent)` }} />
 
-      <div className="flex flex-col p-7 flex-1">
-        <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col p-5 flex-1">
+        <div className="flex items-center justify-between mb-4">
           <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: p.accent }}>
             By the numbers
           </span>
@@ -120,14 +120,14 @@ function BackFace({ p }: { p: Problem }) {
         </div>
 
         {/* Stats */}
-        <div className="flex flex-col gap-3 flex-1">
+        <div className="flex flex-col gap-2 flex-1">
           {[p.stat1, p.stat2, p.stat3].map((s, i) => (
-            <div key={i} className={`rounded-xl p-4 ${p.statBg} border`}>
+            <div key={i} className={`rounded-xl p-3 ${p.statBg} border`}>
               <div className="flex items-baseline gap-1 mb-0.5">
-                <span className="text-[26px] font-black tracking-tight leading-none" style={{ color: p.accent }}>
+                <span className="text-[22px] font-black tracking-tight leading-none" style={{ color: p.accent }}>
                   {s.value}
                 </span>
-                {s.unit && <span className="text-[13px] font-semibold" style={{ color: p.accent }}>{s.unit}</span>}
+                {s.unit && <span className="text-[12px] font-semibold" style={{ color: p.accent }}>{s.unit}</span>}
               </div>
               <p className="text-[11px] text-[#777] leading-snug">{s.label}</p>
             </div>
@@ -135,7 +135,7 @@ function BackFace({ p }: { p: Problem }) {
         </div>
 
         {/* Flip back hint */}
-        <div className="flex items-center gap-1.5 mt-4" style={{ color: p.accent }}>
+        <div className="flex items-center gap-1.5 mt-3" style={{ color: p.accent }}>
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -160,11 +160,11 @@ function ProblemFlipCard({ p, index }: { p: Problem; index: number }) {
       className="flex justify-center"
     >
       <FlipCard
-        width={340}
-        height={400}
+        width={320}
+        height={320}
         background="transparent"
         shadowColor="#000"
-        shadowOpacity={0.35}
+        shadowOpacity={0.25}
         tiltMax={10}
         glareOpacity={0.12}
         front={<FrontFace p={p} />}
